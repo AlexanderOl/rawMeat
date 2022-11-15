@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../linkThrasher/.idea/linkThrasher.iml" filepath="$PROJECT_DIR$/../linkThrasher/.idea/linkThrasher.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/rawMeat.iml" filepath="$PROJECT_DIR$/.idea/rawMeat.iml" />
     </modules>
   </component>
