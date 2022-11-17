@@ -5,7 +5,7 @@ import shutil
 import time
 import uuid
 from datetime import datetime
-from MainInput import MainInput
+from Models.MainInput import MainInput
 from Managers.BodyChecker import BodyChecker
 from Managers.RouteChecker import RouteChecker
 
@@ -15,14 +15,19 @@ SleepDelay = 20
 
 
 def get_main_input(file_request) -> MainInput:
+    if 'application/xml' in file_request:
+        print("Possible XXE found ('application/xml')")
     output_filename = f'{uuid.uuid4().hex}.txt'
     shutil.copyfile(file_request, f'{OutputDir}/{output_filename}')
     text_file = open(file_request, "r")
     request = f'{text_file.read()}\r\n'
     host = request.split('\nHost: ')[1].split('\n')[0]
-    target_url = f'https://{host}/'
-    first_request = request\
-        .replace('HTTP/2', 'HTTP/1.1')
+    if 'HTTP/1.1' in request:
+        target_url = f'http://{host}/'
+        first_request = request.encode()
+    else:
+        target_url = f'https://{host}/'
+        first_request = request.replace('HTTP/2', 'HTTP/1.1').encode()
     text_file.close()
 
     first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False)

@@ -1,7 +1,7 @@
 import json
 import regex
 from copy import deepcopy
-from MainInput import MainInput
+from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
 

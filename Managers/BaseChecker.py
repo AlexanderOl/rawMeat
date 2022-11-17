@@ -1,5 +1,5 @@
 import requests_raw
-from MainInput import MainInput
+from Models.MainInput import MainInput
 
 
 class BaseChecker:
