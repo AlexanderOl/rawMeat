@@ -1,3 +1,5 @@
+import os
+
 import requests_raw
 from Models.MainInput import MainInput
 
@@ -31,6 +33,8 @@ class BaseChecker:
                         self.save_found(idor_requests, self._outputIdorDir)
 
     def save_found(self, check_results: [], output_dir):
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         filename = f'{output_dir}/{self._main_input.output_filename}'
         with open(filename, 'w+') as f:
             for request in check_results:

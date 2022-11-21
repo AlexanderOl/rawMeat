@@ -9,9 +9,9 @@ from Models.MainInput import MainInput
 from Managers.BodyChecker import BodyChecker
 from Managers.RouteChecker import RouteChecker
 
-InputDir = '/root/Desktop/share/RawRequests'
+InputDir = 'D:\share\RawRequests'
 OutputDir = 'Output'
-SleepDelay = 20
+SleepDelay = 30
 
 
 def get_main_input(file_request) -> MainInput:

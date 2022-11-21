@@ -58,8 +58,11 @@ class BodyChecker(BaseChecker):
 
     def run(self):
         found_jsons = set(self._json_pattern.findall(self._main_input.first_req))
-        for found in found_jsons:
-            self.create_recursive_json_payloads(found)
+        if len(found_jsons)>0:
+            for found in found_jsons:
+                self.create_recursive_json_payloads(found)
+        else:
+            self.create_body_payloads()
 
         self.check_injections(self._inject_result)
 
@@ -98,3 +101,26 @@ class BodyChecker(BaseChecker):
             result_list.append(exploit)
         else:
             print(f'CANT REPLACE - {str_json}')
+
+    def create_body_payloads(self):
+        splitted_req = self._main_input.first_req.split('\n\n')
+        if len(splitted_req) > 1:
+            body_params = splitted_req[1].strip('\r\n')
+            params = filter(None, body_params.split("&"))
+            for param in params:
+                param_split = param.split('=')
+                main_url_split = body_params.split(param)
+                if str(param_split[1]).isdigit():
+                    first_idor_payload = str(int(param_split[1]) - 1)
+                    second_idor_payload = str(int(param_split[1]) - 2)
+                    self._idor_result.append([
+                        f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
+                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])
+                else:
+                    for payload in self._payloads:
+                        if len(param_split) == 2:
+                            param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
+                        else:
+                            param_payload = f'{main_url_split[0]}{param_split[0]}{payload}{main_url_split[1]}'
+                        splitted_req[1] = f'{param_payload}\r\n'
+                        self._inject_result.append('\n\n'.join(splitted_req))
