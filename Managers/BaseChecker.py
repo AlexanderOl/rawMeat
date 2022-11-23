@@ -6,9 +6,8 @@ from Models.MainInput import MainInput
 
 class BaseChecker:
     def __init__(self, main_input: MainInput):
-        self._payloads = ['%27', '<poc>', '%22']
-        self._sqliCheckKeyWord = 'syntax'
-        self._xssCheckKeyWord = '<poc>'
+        self._payloads = ['%27', '<poc>', '%22', '{{8*8}}poc']
+        self._keywords_to_check = [' syntax ', '<poc>', '64poc']
         self._outputIdorDir = 'Output/Idor'
         self._outputInjectionsDir = 'Output/Injections'
         self._main_input = main_input
@@ -57,8 +56,7 @@ class BaseChecker:
                 self.save_found([request], self._outputInjectionsDir)
 
     def keyword_checks(self, web_page: str, status_code: int, request):
-        keywords = [self._sqliCheckKeyWord, self._xssCheckKeyWord]
-        for keyword in keywords:
+        for keyword in self._keywords_to_check:
             if keyword in web_page:
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0

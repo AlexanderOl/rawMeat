@@ -1,10 +1,14 @@
 import glob
 import os
+import re
+
 import requests_raw
 import shutil
 import time
 import uuid
 from datetime import datetime
+
+from Managers.CookieChecker import CookieChecker
 from Models.MainInput import MainInput
 from Managers.BodyChecker import BodyChecker
 from Managers.RouteChecker import RouteChecker
@@ -44,6 +48,10 @@ def process_file_request(file_request):
         route_checker.run()
         body_checker = BodyChecker(main_input)
         body_checker.run()
+
+        if re.search(r"c\w*\.txt", file_request):
+            cookie_checker = CookieChecker(main_input)
+            cookie_checker.run()
 
     os.remove(file_request)
     print(f'{file_request} file processed')
