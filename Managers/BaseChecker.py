@@ -51,8 +51,10 @@ class BaseChecker:
             if response.status_code < 300:
                 web_page = response.text.lower()
                 self.keyword_checks(web_page, response.status_code, request)
+            elif 300 <= response.status_code < 400:
+                print(f'Redirected: {response.status_code} - {request[0:100]}')
             elif str(response.status_code)[0] == '5':
-                print(f'FOUND: {response.status_code} - {request[0:100]}')
+                print(f'500 Status: {response.status_code} - {request[0:100]}')
                 self.save_found([request], self._outputInjectionsDir)
 
     def keyword_checks(self, web_page: str, status_code: int, request):

@@ -104,7 +104,7 @@ class BodyChecker(BaseChecker):
 
     def create_body_payloads(self):
         splitted_req = self._main_input.first_req.split('\n\n')
-        if len(splitted_req) > 1:
+        if len(splitted_req) == 2:
             body_params = splitted_req[1].strip('\r\n')
             params = filter(None, body_params.split("&"))
             for param in params:

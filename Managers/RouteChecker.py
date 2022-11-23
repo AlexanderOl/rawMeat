@@ -72,7 +72,7 @@ class RouteChecker(BaseChecker):
             if str(param_split[1]).isdigit():
                 first_idor_payload = str(int(param_split[1]) - 1)
                 second_idor_payload = str(int(param_split[1]) - 2)
-                main_url_split = route.split(param)
+                main_url_split = self._main_input.first_req.split(param)
                 result.append([
                     f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
                     f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])

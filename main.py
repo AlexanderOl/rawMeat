@@ -1,13 +1,11 @@
 import glob
 import os
 import re
-
 import requests_raw
 import shutil
 import time
 import uuid
 from datetime import datetime
-
 from Managers.CookieChecker import CookieChecker
 from Models.MainInput import MainInput
 from Managers.BodyChecker import BodyChecker
