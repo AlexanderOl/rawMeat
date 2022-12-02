@@ -1,6 +1,7 @@
 import json
 import regex
 from copy import deepcopy
+from collections.abc import Iterable
 from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
@@ -22,7 +23,10 @@ class BodyChecker(BaseChecker):
             .replace('False', 'false') \
             .replace('True', 'true')
 
-        parsed_json = json.loads(replaced_str)
+        try:
+            parsed_json = json.loads(replaced_str)
+        except ValueError as e:
+            return
 
         for key in parsed_json:
             node_value = parsed_json[key]
@@ -44,11 +48,21 @@ class BodyChecker(BaseChecker):
                     if len(idor_twins) == 2:
                         self._idor_result.append(idor_twins)
 
-                elif type(node_value) != bool:
+                elif type(node_value) == bool or node_value is None:
+                    continue
+                else:
 
                     for payload in self._payloads:
                         copy = deepcopy(parsed_json)
-                        copy[key] += payload
+
+                        if isinstance(copy[key], list):
+                            if len(copy[key]) == 0:
+                                copy[key].append(payload)
+                            else:
+                                copy[key][len(copy[key])-1] = f'{copy[key][len(copy[key])-1]}{payload}'
+                        else:
+                            copy[key] += payload
+
                         str_json = json.dumps(copy)
                         search_possible_json = str(possible_json)
                         self.add_exploit(search_possible_json, str_json, self._inject_result)
@@ -95,7 +109,13 @@ class BodyChecker(BaseChecker):
                 print(f'Unable to parse - {str_json}')
                 return
             else:
-                print(f'Need attention- {str_json}')
+                first_10_chars_to_replace = self._main_input.first_req.find(str_json[:10])
+                last_10_chars_to_replace = self._main_input.first_req.find(str_json[-10:])
+                if first_10_chars_to_replace < last_10_chars_to_replace:
+                    exploit = old.join([self._main_input.first_req[:first_10_chars_to_replace],
+                                        self._main_input.first_req[last_10_chars_to_replace+10:]])
+                else:
+                    print(f'Need attention- {str_json}')
 
         if exploit:
             result_list.append(exploit)

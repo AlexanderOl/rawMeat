@@ -25,7 +25,7 @@ def get_main_input(file_request) -> MainInput:
     request = f'{text_file.read()}\r\n'
     host = request.split('\nHost: ')[1].split('\n')[0]
     if 'HTTP/1.1' in request:
-        target_url = f'http://{host}/'
+        target_url = f'https://{host}/'
         first_request = request.encode()
     else:
         target_url = f'https://{host}/'
@@ -37,6 +37,7 @@ def get_main_input(file_request) -> MainInput:
         return MainInput(target_url, first_request, first_response, output_filename)
     else:
         print(f"First request status:{first_response.status_code}. File will be removed")
+        os.remove(f'{OutputDir}/{output_filename}')
 
 
 def process_file_request(file_request):
@@ -47,9 +48,12 @@ def process_file_request(file_request):
         body_checker = BodyChecker(main_input)
         body_checker.run()
 
+        cookie_checker = CookieChecker(main_input)
         if re.search(r"c\w*\.txt", file_request):
-            cookie_checker = CookieChecker(main_input)
             cookie_checker.run()
+
+        if not route_checker.is_found and not body_checker.is_found and not cookie_checker.is_found:
+            os.remove(f'{OutputDir}/{main_input.output_filename}')
 
     os.remove(file_request)
     print(f'{file_request} file processed')
