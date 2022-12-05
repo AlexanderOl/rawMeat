@@ -7,7 +7,7 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._payloads = ['%27', '<poc>', '%22', '{{8*8}}poc']
-        self._keywords_to_check = [' syntax ', '<poc>', '64poc', 'xpath']
+        self._keywords_to_check = [' syntax', '<poc>', '64poc', 'xpath']
         self._outputIdorDir = 'Output/Idor'
         self._outputInjectionsDir = 'Output/Injections'
         self._main_input = main_input
@@ -37,9 +37,12 @@ class BaseChecker:
             os.makedirs(output_dir)
         filename = f'{output_dir}/{self._main_input.output_filename}'
 
-        with open(filename, 'w+') as f:
+        with open(filename, 'aw+') as f:
             for request in check_results:
-                splitted = list(filter(None, str(request.decode('utf-8')).split('\n')))
+                if isinstance(request, str):
+                    splitted = list(filter(None, request.split('\n')))
+                else:
+                    splitted = list(filter(None, request.decode('utf-8').split('\n')))
                 for line in splitted:
                     f.write(f"{line}\n")
                 f.write(f"{' + ' * 10}\n")
