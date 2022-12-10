@@ -7,13 +7,15 @@ import time
 import uuid
 from datetime import datetime
 from Managers.CookieChecker import CookieChecker
+from Managers.ParamChecker import ParamChecker
 from Models.MainInput import MainInput
 from Managers.BodyChecker import BodyChecker
 from Managers.RouteChecker import RouteChecker
 
-InputDir = 'D:\share\RawRequests'
+InputDir = 'C:\share\RawRequests'
 OutputDir = 'Output'
 SleepDelay = 30
+NgokUrl = 'https://4be1-91-196-101-94.eu.ngrok.io'
 
 
 def get_main_input(file_request) -> MainInput:
@@ -32,11 +34,15 @@ def get_main_input(file_request) -> MainInput:
         first_request = request.replace('HTTP/2', 'HTTP/1.1').encode()
     text_file.close()
 
-    first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False)
-    if first_response.status_code < 400:
-        return MainInput(target_url, first_request, first_response, output_filename)
-    else:
-        print(f"First request status:{first_response.status_code}. File will be removed")
+    try:
+        first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=8)
+        if first_response.status_code < 400:
+            return MainInput(target_url, first_request, first_response, output_filename, NgokUrl)
+        else:
+            print(f"First request status:{first_response.status_code}. File will be removed")
+            os.remove(f'{OutputDir}/{output_filename}')
+    except Exception as inst:
+        print(f'Url ({target_url}) - Exception: {inst}')
         os.remove(f'{OutputDir}/{output_filename}')
 
 
@@ -45,6 +51,8 @@ def process_file_request(file_request):
     if main_input:
         route_checker = RouteChecker(main_input)
         route_checker.run()
+        param_checker = ParamChecker(main_input)
+        param_checker.run()
         body_checker = BodyChecker(main_input)
         body_checker.run()
 
@@ -79,4 +87,3 @@ def start():
 
 if __name__ == '__main__':
     start()
-

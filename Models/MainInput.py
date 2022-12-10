@@ -1,10 +1,15 @@
 
 class MainInput:
-    def __init__(self, target_url: str, first_req: str, first_resp, output_filename: str):
+    def __init__(self, target_url: str,
+                 first_req: str,
+                 first_resp,
+                 output_filename: str,
+                 ngrok_url: str):
         self._target_url = target_url
         self._first_req = first_req.decode('utf-8')
         self._first_resp = first_resp
         self._output_filename = output_filename
+        self._ngrok_url = ngrok_url
 
     @property
     def target_url(self) -> str:
@@ -21,3 +26,7 @@ class MainInput:
     @property
     def output_filename(self) -> str:
         return str(self._output_filename)
+
+    @property
+    def ngrok_url(self) -> str:
+        return str(self._ngrok_url)

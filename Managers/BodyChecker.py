@@ -1,4 +1,6 @@
 import json
+import urllib
+
 import regex
 from copy import deepcopy
 from collections.abc import Iterable
@@ -13,6 +15,8 @@ class BodyChecker(BaseChecker):
         self._json_pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
         self._inject_result = []
         self._idor_result = []
+        self._ssti_result = []
+        self._ssrf_result = []
 
     def create_recursive_json_payloads(self, possible_json: str):
         replaced_str = possible_json \
@@ -33,7 +37,15 @@ class BodyChecker(BaseChecker):
             inner_found_jsons = set(self._json_pattern.findall(str(node_value)))
             if len(inner_found_jsons) == 0:
 
-                if str(node_value).isdigit():
+                if str(node_value).startswith('http'):
+                    copy = deepcopy(parsed_json)
+                    copy[key] = urllib.parse.quote(
+                        f'{self._main_input.ngrok_url}/body_{key}', safe='')
+
+                    str_json = json.dumps(copy)
+                    self.add_exploit(possible_json, str_json, self._ssrf_result)
+
+                elif str(node_value).isdigit():
                     copy1 = deepcopy(parsed_json)
                     copy1[key] = str(int(copy1[key]) - 1)
                     str_json1 = json.dumps(copy1)
@@ -41,17 +53,31 @@ class BodyChecker(BaseChecker):
                     self.add_exploit(possible_json, str_json1, idor_twins)
 
                     copy2 = deepcopy(parsed_json)
-                    copy2[key] = str(int(copy2[key]) - 2)
+                    copy2[key] = str(int(copy2[key]) + 1)
                     str_json2 = json.dumps(copy2)
                     self.add_exploit(possible_json, str_json2, idor_twins)
 
                     if len(idor_twins) == 2:
                         self._idor_result.append(idor_twins)
 
+                    ssti_twins = []
+                    copy1 = deepcopy(parsed_json)
+                    copy1[key] = f'{copy1[key]}+1'
+                    str_json1 = json.dumps(copy1)
+                    self.add_exploit(possible_json, str_json1, ssti_twins)
+
+                    copy2 = deepcopy(parsed_json)
+                    copy2[key] = str(int(copy2[key]) + 1)
+                    str_json2 = json.dumps(copy2)
+                    self.add_exploit(possible_json, str_json2, ssti_twins)
+
+                    if len(ssti_twins) == 2:
+                        self._ssti_result.append(ssti_twins)
+
                 elif type(node_value) == bool or node_value is None:
                     continue
-                else:
 
+                else:
                     for payload in self._payloads:
                         copy = deepcopy(parsed_json)
 
@@ -64,8 +90,7 @@ class BodyChecker(BaseChecker):
                             copy[key] += payload
 
                         str_json = json.dumps(copy)
-                        search_possible_json = str(possible_json)
-                        self.add_exploit(search_possible_json, str_json, self._inject_result)
+                        self.add_exploit(possible_json, str_json, self._inject_result)
             else:
                 for inner_possible_json in inner_found_jsons:
                     self.create_recursive_json_payloads(inner_possible_json)
@@ -79,16 +104,17 @@ class BodyChecker(BaseChecker):
             self.create_body_payloads()
 
         self.check_injections(self._inject_result)
-
         self.check_idor(self._idor_result)
+        self.check_ssti(self._ssti_result)
+        self.check_ssrf(self._ssrf_result)
 
-    def add_exploit(self, replaced_json, str_json, result_list: []):
+    def add_exploit(self, old_json, new_json, result_list: []):
 
         exploit = None
-        if replaced_json in self._main_input.first_req:
-            exploit = self._main_input.first_req.replace(replaced_json, str_json)
+        if old_json in self._main_input.first_req:
+            exploit = self._main_input.first_req.replace(old_json, new_json)
         else:
-            old = replaced_json\
+            old = old_json\
                 .replace('\'', '"')\
                 .replace(', ',',')\
                 .replace(': ',':')\
@@ -96,7 +122,7 @@ class BodyChecker(BaseChecker):
                 .replace('True', 'true')\
                 .replace(':"{', ':"{')
             if old in self._main_input.first_req:
-                new = str_json\
+                new = new_json\
                     .replace('\'', '"')\
                     .replace(', ', ',')\
                     .replace(': ', ':')\
@@ -106,21 +132,21 @@ class BodyChecker(BaseChecker):
             elif old in self._main_input.first_req.replace('\\"', '"') \
                     .replace(':"{', ':{') \
                     .replace('}",', '},'):
-                print(f'Unable to parse - {str_json}')
+                print(f'Unable to parse - {new_json}')
                 return
             else:
-                first_10_chars_to_replace = self._main_input.first_req.find(str_json[:10])
-                last_10_chars_to_replace = self._main_input.first_req.find(str_json[-10:])
+                first_10_chars_to_replace = self._main_input.first_req.find(new_json[:10])
+                last_10_chars_to_replace = self._main_input.first_req.find(new_json[-10:])
                 if first_10_chars_to_replace < last_10_chars_to_replace:
                     exploit = old.join([self._main_input.first_req[:first_10_chars_to_replace],
                                         self._main_input.first_req[last_10_chars_to_replace+10:]])
                 else:
-                    print(f'Need attention- {str_json}')
+                    print(f'Need attention- {new_json}')
 
         if exploit:
             result_list.append(exploit)
         else:
-            print(f'CANT REPLACE - {str_json}')
+            print(f'CANT REPLACE - {new_json}')
 
     def create_body_payloads(self):
         splitted_req = self._main_input.first_req.split('\n\n')
@@ -132,10 +158,16 @@ class BodyChecker(BaseChecker):
                 main_url_split = body_params.split(param)
                 if str(param_split[1]).isdigit():
                     first_idor_payload = str(int(param_split[1]) - 1)
-                    second_idor_payload = str(int(param_split[1]) - 2)
+                    second_idor_payload = str(int(param_split[1]) + 1)
                     self._idor_result.append([
                         f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
                         f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])
+
+                    first_ssti_payload = str(int(param_split[1]) + 1)
+                    second_ssti_payload = f'{param_split[1]}+1'
+                    self._ssti_result.append([
+                        f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
+                        f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
                 else:
                     for payload in self._payloads:
                         if len(param_split) == 2:

@@ -9,19 +9,16 @@ class RouteChecker(BaseChecker):
         super(RouteChecker, self).__init__(main_input)
 
     def run(self):
-        route_exploits = self.get_route_payloads()
-        self.check_injections(route_exploits)
+        injection_exploits = self.get_injection_payloads()
+        self.check_injections(injection_exploits)
 
-        route_params_payloads = self.get_param_payloads()
-        self.check_injections(route_params_payloads)
+        idor_exploits = self.get_idor_payloads()
+        self.check_idor(idor_exploits)
 
-        route_idor_exploits = self.get_idor_route_payloads()
-        self.check_idor(route_idor_exploits)
+        ssti_exploits = self.get_ssti_payloads()
+        self.check_ssti(ssti_exploits)
 
-        param_idor_payloads = self.get_idor_param_payloads()
-        self.check_idor(param_idor_payloads)
-
-    def get_idor_route_payloads(self) -> []:
+    def get_idor_payloads(self) -> []:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
         parsed = urllib.parse.urlparse(route)
@@ -34,57 +31,32 @@ class RouteChecker(BaseChecker):
                 new_route_parts[index] = str(int(part) - 1)
                 first_idor_payload = f'/{"/".join(new_route_parts)}'
                 new_route_parts = deepcopy(route_parts)
-                new_route_parts[index] = str(int(part) - 2)
+                new_route_parts[index] = str(int(part) + 1)
                 second_idor_payload = f'/{"/".join(new_route_parts)}'
                 result.append([first_idor_payload, second_idor_payload])
 
         return result
 
-    def get_param_payloads(self) -> []:
-        result = []
+    def get_ssti_payloads(self) -> []:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
         parsed = urllib.parse.urlparse(route)
-        params = filter(None, parsed.query.split("&"))
-
-        for param in params:
-            for payload in self._payloads:
-                main_url_split = route.split(param)
-                param_split = param.split('=')
-                if len(param_split) == 2:
-                    param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
-                else:
-                    param_payload = f'{main_url_split[0]}{param_split[0]}{payload}{main_url_split[1]}'
-                request_parts[1] = param_payload
-                result.append(' '.join(request_parts))
-
-        return result
-
-    def get_idor_param_payloads(self) -> []:
+        route_parts = [r for r in parsed.path.split('/') if r.strip()]
         result = []
-        request_parts = self._main_input.first_req.split(' ')
-        route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
-        params = filter(None, parsed.query.split("&"))
 
-        for param in params:
-            param_split = param.split('=')
-            if len(param_split) == 2:
-                possible_int_param_value = str(param_split[1])
-            else:
-                possible_int_param_value = str(param_split[0])
-
-            if possible_int_param_value.isdigit():
-                first_idor_payload = str(int(possible_int_param_value) - 1)
-                second_idor_payload = str(int(possible_int_param_value) - 2)
-                main_url_split = self._main_input.first_req.split(param, 1)
-                result.append([
-                    f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
-                    f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])
+        for index, part in enumerate(route_parts):
+            if part.isdigit():
+                new_route_parts = deepcopy(route_parts)
+                new_route_parts[index] = str(int(part) + 1)
+                first_idor_payload = f'/{"/".join(new_route_parts)}'
+                new_route_parts = deepcopy(route_parts)
+                new_route_parts[index] = f'{part}+1'
+                second_idor_payload = f'/{"/".join(new_route_parts)}'
+                result.append([first_idor_payload, second_idor_payload])
 
         return result
 
-    def get_route_payloads(self) -> []:
+    def get_injection_payloads(self) -> []:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
         parsed = urllib.parse.urlparse(route)
