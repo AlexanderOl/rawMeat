@@ -7,10 +7,12 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._payloads = ['%27', '<poc>', '%22', '{{8*8}}poc']
-        self._keywords_to_check = [' syntax', '<poc>', '64poc', 'xpath']
+        self._injections_to_check = [' syntax', '<poc>', '64poc', 'xpath', 'exception']
+        self._xxe_to_check = ['syntax', 'root:', 'XXE found!', 'exception', '<foo>']
         self._outputIdorDir = 'Output/Idor'
         self._outputSstiDir = 'Output/Ssti'
         self._outputInjectionsDir = 'Output/Injections'
+        self._outputXxeDir = 'Output/Xxe'
         self._main_input = main_input
         self.is_found = False
 
@@ -18,65 +20,98 @@ class BaseChecker:
 
         for index, request in enumerate(route_exploits):
             request = f'{request}'.encode()
-            response = requests_raw.raw(url=self._main_input.target_url,
-                                        data=request,
-                                        allow_redirects=False)
+            try:
+                response = requests_raw.raw(url=self._main_input.target_url,
+                                            data=request,
+                                            allow_redirects=False,
+                                            timeout=5)
 
-            if response.status_code < 300:
                 web_page = response.text.lower()
-                self.keyword_checks(web_page, response.status_code, request)
-            elif 300 <= response.status_code < 400:
-                print(f'Redirected: {response.status_code} - {request[0:100]}')
-            elif str(response.status_code)[0] == '5':
-                print(f'500 Status: {response.status_code} - {request[0:100]}')
-                self.save_found([request], self._outputInjectionsDir)
+                self.injection_keyword_checks(web_page, response.status_code, request)
+                if str(response.status_code)[0] == '5':
+                    print(f'500 Status: {response.status_code} - {request[0:100]}')
+                    self.save_found([request], self._outputInjectionsDir)
+            except:
+                break
 
     def check_idor(self, idor_payloads: []):
-        if self._main_input.first_resp.status_code < 400:
-            for idor_requests in idor_payloads:
-                check_results = []
-                for request in idor_requests:
-                    response = requests_raw.raw(url=self._main_input.target_url, data=request.encode(),
-                                                allow_redirects=False)
+        for idor_requests in idor_payloads:
+            check_results = []
+            for request in idor_requests:
+                try:
+                    response = requests_raw.raw(
+                        url=self._main_input.target_url,
+                        data=request.encode(),
+                        allow_redirects=False,
+                        timeout=5)
                     if response.status_code != self._main_input.first_resp.status_code:
                         check_results = []
                         break
                     check_results.append(response)
+                except:
+                    break
 
-                if len(check_results) == len(idor_requests):
-                    responses_length = [len(response.text) for response in check_results]
-                    responses_length.append(len(self._main_input.first_resp.text))
-                    if len(responses_length) == len(set(responses_length)):
-                        print(f'FOUND IDOR - {idor_requests[0][0:100]}')
-                        self.save_found(idor_requests, self._outputIdorDir)
+            if len(check_results) == len(idor_requests):
+                responses_length = [len(response.text) for response in check_results]
+                responses_length.append(len(self._main_input.first_resp.text))
+                if len(responses_length) == len(set(responses_length)):
+                    print(f'FOUND IDOR - {idor_requests[0][0:100]}')
+                    self.save_found(idor_requests, self._outputIdorDir)
 
     def check_ssti(self, ssti_payloads: []):
-        if self._main_input.first_resp.status_code < 400:
-            for ssti_requests in ssti_payloads:
-                check_results = []
-                for request in ssti_requests:
+        for ssti_requests in ssti_payloads:
+            check_results = []
+            for request in ssti_requests:
+                try:
                     response = requests_raw.raw(url=self._main_input.target_url,
                                                 data=request.encode(),
-                                                allow_redirects=False)
+                                                allow_redirects=False,
+                                                timeout=5)
                     if response.status_code != self._main_input.first_resp.status_code:
                         check_results = []
                         break
                     check_results.append(response)
+                except:
+                    break
 
-                if len(check_results) == len(ssti_requests):
-                    ssti_responses_length = [len(response.text) for response in check_results]
-                    main_responses_length = len(self._main_input.first_resp.text)
-                    if set(ssti_responses_length) == 1 and ssti_responses_length[0] != main_responses_length:
-                        print(f'FOUND SSTI - {ssti_requests[0][0:100]}')
-                        self.save_found(ssti_requests, self._outputSstiDir)
+            if len(check_results) == len(ssti_requests):
+                ssti_responses_length = [len(response.text) for response in check_results]
+                main_responses_length = len(self._main_input.first_resp.text)
+                if set(ssti_responses_length) == 1 and ssti_responses_length[0] != main_responses_length:
+                    print(f'FOUND SSTI - {ssti_requests[0][0:100]}')
+                    self.save_found(ssti_requests, self._outputSstiDir)
 
     def check_ssrf(self, ssrf_payloads: []):
-        if self._main_input.first_resp.status_code < 400:
-            for request in ssrf_payloads:
-                request = f'{request}'.encode()
+        for request in ssrf_payloads:
+            request = f'{request}'.encode()
+            try:
                 requests_raw.raw(url=self._main_input.target_url,
                                  data=request,
-                                 allow_redirects=False)
+                                 allow_redirects=False,
+                                 timeout=5)
+            except:
+                break
+
+    def check_xxe(self, xxe_payloads: []):
+        for request in xxe_payloads:
+            request = f'{request}'.encode()
+            try:
+                response = requests_raw.raw(url=self._main_input.target_url,
+                                            data=request,
+                                            allow_redirects=False,
+                                            timeout=5)
+
+                web_page = response.text.lower()
+                self.xxe_keyword_checks(web_page, response.status_code, request)
+                if str(response.status_code)[0] == '5':
+                    print(f'Status:{response.status_code};'
+                          f'DETAILS-{request[0:100]};'
+                          f'SIZE-{len(web_page)};'
+                          f'FILE-{self._main_input.output_filename}')
+                    self.save_found([request], self._outputInjectionsDir)
+
+            except:
+                continue
 
     def save_found(self, check_results: [], output_dir):
 
@@ -97,12 +132,28 @@ class BaseChecker:
 
         self.is_found = True
 
-    def keyword_checks(self, web_page: str, status_code: int, request):
-
-        for keyword in self._keywords_to_check:
-            if keyword in web_page:
+    def injection_keyword_checks(self, web_page: str, status_code: int, request):
+        for keyword in self._injections_to_check:
+            if keyword in web_page and keyword not in self._main_input.first_resp.text:
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
-                print(f'FOUND "{keyword}": {status_code} - {web_page[start_index:last_index]}')
+                print(f'injFOUND "{keyword}":'
+                      f'STATUS-{status_code};'
+                      f'DETAILS-{web_page[start_index:last_index]};'
+                      f'SIZE-{len(web_page)};'
+                      f'FILE-{self._main_input.output_filename}')
                 self.save_found([request], self._outputInjectionsDir)
+
+    def xxe_keyword_checks(self, web_page: str, status_code: int, request):
+        for keyword in self._xxe_to_check:
+            if keyword in web_page and keyword not in self._main_input.first_resp.text:
+                substr_index = web_page.find(keyword)
+                start_index = substr_index - 50 if substr_index - 50 > 0 else 0
+                last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
+                print(f'xxeFOUND "{keyword}":'
+                      f'STATUS-{status_code};'
+                      f'DETAILS-{web_page[start_index:last_index]};'
+                      f'SIZE-{len(web_page)};'
+                      f'FILE-{self._main_input.output_filename}')
+                self.save_found([request], self._outputXxeDir)

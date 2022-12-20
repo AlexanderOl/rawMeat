@@ -55,7 +55,7 @@ class CookieChecker(BaseChecker):
                     res2 = self._main_input.first_req.replace(original_str, idor_str2)
                     idor_results.append([res1, res2])
 
-                    ssti_str1 = f'{item}={cookies[item]+1}'
+                    ssti_str1 = f'{item}={cookies[item]}+1'
                     ssti_str2 = f'{item}={str(int(cookies[item]) + 1)}'
                     res1 = self._main_input.first_req.replace(original_str, ssti_str1)
                     res2 = self._main_input.first_req.replace(original_str, ssti_str2)

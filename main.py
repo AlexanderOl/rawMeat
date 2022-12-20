@@ -15,13 +15,13 @@ from Managers.RouteChecker import RouteChecker
 InputDir = 'C:\share\RawRequests'
 OutputDir = 'Output'
 SleepDelay = 30
-NgokUrl = 'https://4be1-91-196-101-94.eu.ngrok.io'
+NgokUrl = 'https://3f61-91-196-101-94.eu.ngrok.io'
 
 
 def get_main_input(file_request) -> MainInput:
-    if 'application/xml' in file_request:
+    if 'application/xml' in file_request or 'text/xml' in file_request:
         print("Possible XXE found ('application/xml')")
-    output_filename = f'{uuid.uuid4().hex}.txt'
+    output_filename = f'{str(uuid.uuid4())[:8]}.txt'
     shutil.copyfile(file_request, f'{OutputDir}/{output_filename}')
     text_file = open(file_request, "r")
     request = f'{text_file.read()}\r\n'
@@ -35,12 +35,9 @@ def get_main_input(file_request) -> MainInput:
     text_file.close()
 
     try:
-        first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=8)
-        if first_response.status_code < 400:
-            return MainInput(target_url, first_request, first_response, output_filename, NgokUrl)
-        else:
-            print(f"First request status:{first_response.status_code}. File will be removed")
-            os.remove(f'{OutputDir}/{output_filename}')
+        first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
+        return MainInput(target_url, first_request, first_response, output_filename, NgokUrl)
+
     except Exception as inst:
         print(f'Url ({target_url}) - Exception: {inst}')
         os.remove(f'{OutputDir}/{output_filename}')
@@ -71,8 +68,8 @@ def start():
     if not os.path.exists(InputDir):
         os.makedirs(InputDir)
     print(f'[{datetime.now().strftime("%H:%M:%S")}]: Searching for incoming requests...')
-    while True:
 
+    while True:
         files = glob.glob(f'{InputDir}/*.txt')
         if len(files) == 0:
             print('No files found.')
