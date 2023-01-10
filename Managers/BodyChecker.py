@@ -1,6 +1,6 @@
 import json
 import urllib
-
+import re
 import regex
 from copy import deepcopy
 from Models.MainInput import MainInput
@@ -50,6 +50,7 @@ class BodyChecker(BaseChecker):
             .replace('True', 'true')
 
         try:
+            replaced_str = re.sub(r'\bNone\b', 'null', replaced_str)
             parsed_json = json.loads(replaced_str)
         except ValueError as e:
             return
@@ -96,9 +97,6 @@ class BodyChecker(BaseChecker):
                     if len(ssti_twins) == 2:
                         self._ssti_result.append(ssti_twins)
 
-                elif type(node_value) == bool or node_value is None:
-                    continue
-
                 else:
                     for payload in self._payloads:
                         copy = deepcopy(parsed_json)
@@ -109,7 +107,10 @@ class BodyChecker(BaseChecker):
                             else:
                                 copy[key][len(copy[key]) - 1] = f'{copy[key][len(copy[key]) - 1]}{payload}'
                         else:
-                            copy[key] += payload
+                            if type(node_value) == bool or node_value is None:
+                                copy[key] = payload
+                            else:
+                                copy[key] += payload
 
                         str_json = json.dumps(copy)
                         self.__add_exploit(possible_json, str_json, self._inject_result)
@@ -123,7 +124,8 @@ class BodyChecker(BaseChecker):
         if old_json in self._main_input.first_req:
             exploit = self._main_input.first_req.replace(old_json, new_json)
         else:
-            old = old_json \
+            old = re.sub(r'\bNone\b', 'null', old_json)
+            old = old \
                 .replace('\'', '"') \
                 .replace(', ', ',') \
                 .replace(': ', ':') \

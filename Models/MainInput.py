@@ -1,7 +1,7 @@
 
 class MainInput:
     def __init__(self, target_url: str,
-                 first_req: str,
+                 first_req: bytes,
                  first_resp,
                  output_filename: str,
                  ngrok_url: str):
