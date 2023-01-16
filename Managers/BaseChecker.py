@@ -130,10 +130,10 @@ class BaseChecker:
             f.write(f"{replaced}\n\n")
             for request in check_results:
                 if isinstance(request, str):
-                    splitted = list(filter(None, request.replace('\r', '').split('\n')))
+                    lines = list(filter(None, request.replace('\r', '').split('\n')))
                 else:
-                    splitted = list(filter(None, request.decode('utf-8').replace('\r', '').split('\n')))
-                for line in splitted:
+                    lines = list(filter(None, request.decode('utf-8').replace('\r', '').split('\n')))
+                for line in lines:
                     f.write(f"{line}\n")
                 f.write(f"{' + ' * 10}\n")
             f.write(f"{'-' * 100}\n")
