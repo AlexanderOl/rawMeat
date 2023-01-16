@@ -7,7 +7,7 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._payloads = ['%27', '\\', '<poc>', '%22', '\'"%5C)--\\\\' '{{8*8}}poc']
-        self._injections_to_check = [' syntax', '<poc>', '64poc', 'xpath', 'exception', 'internalerror', 'warning: ', 'Server Error']
+        self._injections_to_check = [' syntax', '<poc>', '64poc', 'xpath', 'exception', 'internalerror', 'warning: ', 'server error']
         self._xxe_to_check = ['syntax', 'root:', 'XXE found!', 'exception', '<foo>']
         self._outputIdorDir = 'Output/Idor'
         self._outputSstiDir = 'Output/Ssti'
@@ -142,7 +142,7 @@ class BaseChecker:
 
     def injection_keyword_checks(self, web_page: str, status_code: int, request):
         for keyword in self._injections_to_check:
-            if keyword in web_page and keyword not in self._main_input.first_resp.text:
+            if keyword in web_page and keyword not in self._main_input.first_resp.text.lower():
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
@@ -156,7 +156,7 @@ class BaseChecker:
 
     def xxe_keyword_checks(self, web_page: str, status_code: int, request):
         for keyword in self._xxe_to_check:
-            if keyword in web_page and keyword not in self._main_input.first_resp.text:
+            if keyword in web_page and keyword not in self._main_input.first_resp.text.lower():
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index

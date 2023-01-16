@@ -110,7 +110,7 @@ class BodyChecker(BaseChecker):
                             if type(node_value) == bool or node_value is None or str(node_value).isdigit():
                                 copy[key] = payload
                             else:
-                                copy[key] += payload
+                                copy[key] = f'{copy[key]}{payload}'
 
                         str_json = json.dumps(copy)
                         self.__add_exploit(possible_json, str_json, self._inject_result)
