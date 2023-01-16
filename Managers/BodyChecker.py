@@ -107,7 +107,7 @@ class BodyChecker(BaseChecker):
                             else:
                                 copy[key][len(copy[key]) - 1] = f'{copy[key][len(copy[key]) - 1]}{payload}'
                         else:
-                            if type(node_value) == bool or node_value is None:
+                            if type(node_value) == bool or node_value is None or str(node_value).isdigit():
                                 copy[key] = payload
                             else:
                                 copy[key] += payload

@@ -33,7 +33,13 @@ class RouteChecker(BaseChecker):
                 new_route_parts = deepcopy(route_parts)
                 new_route_parts[index] = str(int(part) + 1)
                 second_idor_payload = f'/{"/".join(new_route_parts)}'
-                result.append([first_idor_payload, second_idor_payload])
+                new_request_parts1 = deepcopy(request_parts)
+                new_request_parts1[1] = first_idor_payload
+                first_idor_request = ' '.join(new_request_parts1)
+                new_request_parts2 = deepcopy(request_parts)
+                new_request_parts2[1] = second_idor_payload
+                second_idor_request = ' '.join(new_request_parts2)
+                result.append([first_idor_request, second_idor_request])
 
         return result
 

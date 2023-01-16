@@ -7,6 +7,7 @@ import requests_raw
 
 from Managers.BodyChecker import BodyChecker
 from Managers.CookieChecker import CookieChecker
+from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
 from Managers.RouteChecker import RouteChecker
 from Models.MainInput import MainInput
@@ -39,6 +40,8 @@ class RawManager:
             param_checker.run()
             body_checker = BodyChecker(main_input)
             body_checker.run()
+            header_checker = HeaderChecker(main_input)
+            header_checker.run()
 
             cookie_checker = CookieChecker(main_input)
             if re.search(r"c\w*\.txt", file_request):
@@ -51,8 +54,7 @@ class RawManager:
         print(f'{file_request} file processed')
 
     def __get_main_input(self, file_request) -> MainInput:
-        if 'application/xml' in file_request or 'text/xml' in file_request:
-            print("Possible XXE found ('application/xml')")
+
         output_filename = f'{str(uuid.uuid4())[:8]}.txt'
 
         if not os.path.exists(self._output_dir):

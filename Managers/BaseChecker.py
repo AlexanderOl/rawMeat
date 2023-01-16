@@ -28,7 +28,7 @@ class BaseChecker:
 
                 web_page = response.text.lower()
                 self.injection_keyword_checks(web_page, response.status_code, request)
-                if str(response.status_code)[0] == '5':
+                if response.status_code == 500:
                     log_header_msg = f'500 Status: {response.status_code} - {request[0:100]}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
@@ -56,8 +56,8 @@ class BaseChecker:
                 responses_length = [len(response.text) for response in check_results]
                 responses_length.append(len(self._main_input.first_resp.text))
                 if len(responses_length) == len(set(responses_length)):
-                    log_header_msg = f'FOUND IDOR - {idor_requests[0][0:100]};' \
-                                     f'FILE-{self._main_input.output_filename}'
+                    log_header_msg = f'FOUND IDOR: {idor_requests[0][0:100]};' \
+                                     f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
 
@@ -81,8 +81,8 @@ class BaseChecker:
                 ssti_responses_length = [len(response.text) for response in check_results]
                 main_responses_length = len(self._main_input.first_resp.text)
                 if set(ssti_responses_length) == 1 and ssti_responses_length[0] != main_responses_length:
-                    log_header_msg = f'FOUND SSTI - {ssti_requests[0][0:100]};' \
-                                     f'FILE-{self._main_input.output_filename}'
+                    log_header_msg = f'FOUND SSTI: {ssti_requests[0][0:100]};' \
+                                     f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, ssti_requests, self._outputSstiDir)
 
@@ -108,11 +108,11 @@ class BaseChecker:
 
                 web_page = response.text.lower()
                 self.xxe_keyword_checks(web_page, response.status_code, request)
-                if str(response.status_code)[0] == '5':
-                    log_header_msg = f'Status:{response.status_code};' \
-                                     f'DETAILS-{request[0:100]};' \
-                                     f'SIZE-{len(web_page)};' \
-                                     f'FILE-{self._main_input.output_filename}'
+                if response.status_code == 500:
+                    log_header_msg = f'Status: {response.status_code};' \
+                                     f'DETAILS: {request[0:100]};' \
+                                     f'SIZE: {len(web_page)};' \
+                                     f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
 
@@ -126,16 +126,18 @@ class BaseChecker:
         filename = f'{output_dir}/{self._main_input.output_filename}'
 
         with open(filename, 'a+') as f:
-            f.write(f"{log_header_msg}\n\n")
+            replaced = log_header_msg.replace('\r', ' ').replace('\n', '')
+            f.write(f"{replaced}\n\n")
             for request in check_results:
                 if isinstance(request, str):
-                    splitted = list(filter(None, request.split('\n')))
+                    splitted = list(filter(None, request.replace('\r', '').split('\n')))
                 else:
-                    splitted = list(filter(None, request.decode('utf-8').split('\n')))
-                f.writelines(splitted)
+                    splitted = list(filter(None, request.decode('utf-8').replace('\r', '').split('\n')))
+                for line in splitted:
+                    f.write(f"{line}\n")
                 f.write(f"{' + ' * 10}\n")
             f.write(f"{'-' * 100}\n")
-
+        f.close()
         self.is_found = True
 
     def injection_keyword_checks(self, web_page: str, status_code: int, request):
@@ -144,11 +146,11 @@ class BaseChecker:
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
-                log_header_msg = f'injFOUND "{keyword}":' \
-                                 f'STATUS-{status_code};' \
-                                 f'DETAILS-{web_page[start_index:last_index]};' \
-                                 f'SIZE-{len(web_page)};' \
-                                 f'FILE-{self._main_input.output_filename}'
+                log_header_msg = f'injFOUND: "{keyword}";' \
+                                 f'STATUS: {status_code};' \
+                                 f'DETAILS: {web_page[start_index:last_index]};' \
+                                 f'SIZE: {len(web_page)};' \
+                                 f'FILE: {self._main_input.output_filename}'
                 print(log_header_msg)
                 self.save_found(log_header_msg, [request], self._outputInjectionsDir)
 
@@ -158,10 +160,10 @@ class BaseChecker:
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
-                log_header_msg = f'xxeFOUND "{keyword}":' \
-                                 f'STATUS-{status_code};' \
-                                 f'DETAILS-{web_page[start_index:last_index]};' \
-                                 f'SIZE-{len(web_page)};' \
-                                 f'FILE-{self._main_input.output_filename}'
+                log_header_msg = f'xxeFOUND: "{keyword}";' \
+                                 f'STATUS: {status_code};' \
+                                 f'DETAILS: {web_page[start_index:last_index]};' \
+                                 f'SIZE: {len(web_page)};' \
+                                 f'FILE: {self._main_input.output_filename}'
                 print(log_header_msg)
                 self.save_found(log_header_msg, [request], self._outputXxeDir)
