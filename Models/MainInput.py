@@ -6,7 +6,7 @@ class MainInput:
                  output_filename: str,
                  ngrok_url: str):
         self._target_url = target_url
-        self._first_req = first_req.decode('utf-8')
+        self._first_req = first_req.decode()
         self._first_resp = first_resp
         self._output_filename = output_filename
         self._ngrok_url = ngrok_url

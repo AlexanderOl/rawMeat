@@ -70,7 +70,7 @@ class RouteChecker(BaseChecker):
         result = []
 
         for index, part in enumerate(route_parts):
-            for payload in self._payloads:
+            for payload in self._injection_payloads:
                 payload_part = f'{part}{payload}'
                 new_route_parts = deepcopy(route_parts)
                 new_route_parts[index] = payload_part

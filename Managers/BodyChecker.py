@@ -98,7 +98,7 @@ class BodyChecker(BaseChecker):
                         self._ssti_result.append(ssti_twins)
 
                 else:
-                    for payload in self._payloads:
+                    for payload in self._injection_payloads:
                         copy = deepcopy(parsed_json)
 
                         if isinstance(copy[key], list):
@@ -180,7 +180,7 @@ class BodyChecker(BaseChecker):
                         f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
                         f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
                 else:
-                    for payload in self._payloads:
+                    for payload in self._injection_payloads:
                         if len(param_split) == 2:
                             param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
                         else:

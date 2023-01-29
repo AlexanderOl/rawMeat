@@ -1,4 +1,6 @@
 import urllib
+from copy import deepcopy
+
 from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
@@ -8,19 +10,22 @@ class ParamChecker(BaseChecker):
         super(ParamChecker, self).__init__(main_input)
 
     def run(self):
-        injection_payloads = self.get_injection_param_payloads()
-        self.check_injections(injection_payloads)
+        injection_payloads = self.__get_injection_param_payloads()
+        super().check_injections(injection_payloads)
 
-        idor_payloads = self.get_idor_param_payloads()
-        self.check_idor(idor_payloads)
+        time_based_payloads = self.__get_time_based_param_payloads()
+        super().check_time_based_injections(time_based_payloads)
 
-        ssti_exploits = self.get_ssti_param_payloads()
-        self.check_ssti(ssti_exploits)
+        idor_payloads = self.__get_idor_param_payloads()
+        super().check_idor(idor_payloads)
+
+        ssti_exploits = self.__get_ssti_param_payloads()
+        super().check_ssti(ssti_exploits)
 
         ssrf_exploits = self.get_ssrf_param_payloads()
-        self.check_ssrf(ssrf_exploits)
+        super().check_ssrf(ssrf_exploits)
 
-    def get_injection_param_payloads(self) -> []:
+    def __get_injection_param_payloads(self) -> []:
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
@@ -28,7 +33,7 @@ class ParamChecker(BaseChecker):
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
-            for payload in self._payloads:
+            for payload in self._injection_payloads:
                 main_url_split = route.split(param)
                 param_split = param.split('=')
                 if len(param_split) == 2:
@@ -40,7 +45,33 @@ class ParamChecker(BaseChecker):
 
         return result
 
-    def get_idor_param_payloads(self) -> []:
+    def __get_time_based_param_payloads(self) -> [{}]:
+        result = []
+        request_parts = self._main_input.first_req.split(' ')
+        route = request_parts[1]
+        parsed = urllib.parse.urlparse(route)
+        params = filter(None, parsed.query.split("&"))
+
+        for param in params:
+            for payload in self._time_based_payloads:
+                main_url_split = route.split(param)
+                param_split = param.split('=')
+                if len(param_split) == 2:
+                    true_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["True"]}{main_url_split[1]}'
+                    false_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["False"]}{main_url_split[1]}'
+                    payloads = {'True':true_payload, 'False':false_payload}
+                else:
+                    true_payload = f'{main_url_split[0]}{param_split[0]}{payload["True"]}{main_url_split[1]}'
+                    false_payload = f'{main_url_split[0]}{param_split[0]}{payload["False"]}{main_url_split[1]}'
+                    payloads = {'True': true_payload, 'False': false_payload}
+                copy = deepcopy(request_parts)
+                request_parts[1] = payloads['True']
+                copy[1] = payloads['False']
+                result.append({'True': ' '.join(request_parts), 'False': ' '.join(copy)})
+
+        return result
+
+    def __get_idor_param_payloads(self) -> []:
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
@@ -69,7 +100,7 @@ class ParamChecker(BaseChecker):
 
         return result
 
-    def get_ssti_param_payloads(self) -> []:
+    def __get_ssti_param_payloads(self) -> []:
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]

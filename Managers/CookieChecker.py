@@ -34,7 +34,7 @@ class CookieChecker(BaseChecker):
                 cookies[key] = morsel.value
 
             for item in cookies:
-                for payload in self._payloads:
+                for payload in self._injection_payloads:
                     original_str = f'{item}={cookies[item]}'
                     payload_str = f'{item}={payload}'
                     res = self._main_input.first_req.replace(original_str, payload_str)
