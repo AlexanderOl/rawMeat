@@ -1,8 +1,12 @@
 import json
 import urllib
 import re
+from typing import List
+
 import regex
 from copy import deepcopy
+
+from Models.Idor import Idor
 from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
@@ -13,7 +17,7 @@ class BodyChecker(BaseChecker):
         self._json_dive_level = 3
         self._json_pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
         self._inject_result = []
-        self._idor_result = []
+        self._idor_result: List[Idor] = []
         self._ssti_result = []
         self._ssrf_result = []
         self._xxe_result = []
@@ -81,7 +85,7 @@ class BodyChecker(BaseChecker):
                     self.__add_exploit(possible_json, str_json2, idor_twins)
 
                     if len(idor_twins) == 2:
-                        self._idor_result.append(idor_twins)
+                        self._idor_result.append(Idor(idor_twins, key))
 
                     ssti_twins = []
                     copy1 = deepcopy(parsed_json)
@@ -170,9 +174,10 @@ class BodyChecker(BaseChecker):
                 if str(param_split[1]).isdigit():
                     first_idor_payload = str(int(param_split[1]) - 1)
                     second_idor_payload = str(int(param_split[1]) + 1)
-                    self._idor_result.append([
+                    self._idor_result.append(Idor([
                         f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
-                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])
+                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
+                        param_split[0]))
 
                     first_ssti_payload = str(int(param_split[1]) + 1)
                     second_ssti_payload = f'{param_split[1]}+1'

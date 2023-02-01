@@ -1,7 +1,9 @@
 import urllib
 from http.cookies import SimpleCookie
+from typing import List
 
 from Managers.BaseChecker import BaseChecker
+from Models.Idor import Idor
 from Models.MainInput import MainInput
 
 
@@ -10,17 +12,16 @@ class CookieChecker(BaseChecker):
         super(CookieChecker, self).__init__(main_input)
 
     def run(self):
-        injection_exploits, idor_results, ssti_results, ssrf_results \
-            = self.get_injection_payloads()
+        injection_exploits, idor_results, ssti_results, ssrf_results = self.get_injection_payloads()
 
         self.check_injections(injection_exploits)
-        self.check_idor(idor_results)
+        super().check_idor(idor_results)
         self.check_ssti(ssti_results)
         self.check_ssrf(ssrf_results)
 
     def get_injection_payloads(self) -> []:
         injection_results = []
-        idor_results = []
+        idor_results: List[Idor] = []
         ssti_results = []
         ssrf_results = []
         cookie_split = self._main_input.first_req.split('Cookie: ')
@@ -51,15 +52,15 @@ class CookieChecker(BaseChecker):
                     original_str = f'{item}={cookies[item]}'
                     idor_str1 = f'{item}={str(int(cookies[item]) - 1)}'
                     idor_str2 = f'{item}={str(int(cookies[item]) + 1)}'
-                    res1 = self._main_input.first_req.replace(original_str, idor_str1)
-                    res2 = self._main_input.first_req.replace(original_str, idor_str2)
-                    idor_results.append([res1, res2])
+                    idor_res1 = self._main_input.first_req.replace(original_str, idor_str1)
+                    idor_res2 = self._main_input.first_req.replace(original_str, idor_str2)
+                    idor_results.append(Idor([idor_res1, idor_res2], item))
 
                     ssti_str1 = f'{item}={cookies[item]}+1'
                     ssti_str2 = f'{item}={str(int(cookies[item]) + 1)}'
-                    res1 = self._main_input.first_req.replace(original_str, ssti_str1)
-                    res2 = self._main_input.first_req.replace(original_str, ssti_str2)
-                    ssti_results.append([res1, res2])
+                    ssti_res1 = self._main_input.first_req.replace(original_str, ssti_str1)
+                    ssti_res2 = self._main_input.first_req.replace(original_str, ssti_str2)
+                    ssti_results.append([ssti_res1, ssti_res2])
 
         return injection_results, idor_results, ssti_results, ssrf_results
 

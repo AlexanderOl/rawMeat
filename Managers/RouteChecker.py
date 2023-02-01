@@ -1,5 +1,8 @@
 import urllib
 from copy import deepcopy
+from typing import List
+
+from Models.Idor import Idor
 from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
@@ -12,18 +15,18 @@ class RouteChecker(BaseChecker):
         injection_exploits = self.get_injection_payloads()
         self.check_injections(injection_exploits)
 
-        idor_exploits = self.get_idor_payloads()
-        self.check_idor(idor_exploits)
+        idor_payloads = self.get_idor_payloads()
+        super().check_idor(idor_payloads)
 
         ssti_exploits = self.get_ssti_payloads()
         self.check_ssti(ssti_exploits)
 
-    def get_idor_payloads(self) -> []:
+    def get_idor_payloads(self) -> List[Idor]:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
         parsed = urllib.parse.urlparse(route)
         route_parts = [r for r in parsed.path.split('/') if r.strip()]
-        result = []
+        result: List[Idor] = []
 
         for index, part in enumerate(route_parts):
             if part.isdigit():
@@ -39,7 +42,7 @@ class RouteChecker(BaseChecker):
                 new_request_parts2 = deepcopy(request_parts)
                 new_request_parts2[1] = second_idor_payload
                 second_idor_request = ' '.join(new_request_parts2)
-                result.append([first_idor_request, second_idor_request])
+                result.append(Idor([first_idor_request, second_idor_request],f'route part - {part}'))
 
         return result
 

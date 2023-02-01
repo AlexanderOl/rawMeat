@@ -1,6 +1,8 @@
 import urllib
 from copy import deepcopy
+from typing import List
 
+from Models.Idor import Idor
 from Models.MainInput import MainInput
 from Managers.BaseChecker import BaseChecker
 
@@ -71,8 +73,8 @@ class ParamChecker(BaseChecker):
 
         return result
 
-    def __get_idor_param_payloads(self) -> []:
-        result = []
+    def __get_idor_param_payloads(self) -> List[Idor]:
+        result: List[Idor] = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
         parsed = urllib.parse.urlparse(route)
@@ -90,13 +92,16 @@ class ParamChecker(BaseChecker):
                 second_idor_payload = str(int(possible_int_param_value) + 1)
                 main_url_split = self._main_input.first_req.split(param, 1)
                 if len(param_split) == 2:
-                    result.append([
+                    result.append(Idor([
                         f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
-                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'])
+                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
+                        param_split[0]))
                 else:
-                    result.append([
+
+                    result.append(Idor([
                         f'{main_url_split[0]}{first_idor_payload}{main_url_split[1]}',
-                        f'{main_url_split[0]}{second_idor_payload}{main_url_split[1]}'])
+                        f'{main_url_split[0]}{second_idor_payload}{main_url_split[1]}'],
+                        param_split[0]))
 
         return result
 
@@ -139,11 +144,11 @@ class ParamChecker(BaseChecker):
         for param in params:
             param_split = param.split('=')
             if len(param_split) == 2:
-                possible_int_param_value = str(param_split[1])
+                param_value = str(param_split[1])
             else:
-                possible_int_param_value = str(param_split[0])
+                param_value = str(param_split[0])
 
-            if possible_int_param_value.startswith('http'):
+            if param_value.startswith('http'):
                 ssrf_payload = urllib.parse.quote(f'{self._main_input.ngrok_url}/param_{param_split[0]}', safe='')
                 main_url_split = self._main_input.first_req.split(param, 1)
                 if len(param_split) == 2:

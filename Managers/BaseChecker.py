@@ -1,9 +1,11 @@
 import os
+from typing import List
 
 import requests_raw
 from requests import RequestException
 from urllib3.exceptions import ReadTimeoutError
 
+from Models.Idor import Idor
 from Models.MainInput import MainInput
 
 
@@ -15,10 +17,11 @@ class BaseChecker:
             ]
         self._false_positives = ['malformed request syntax',
                                  'use esm export syntax, instead:',
-                                 '"xpath":["\/html\/head\/title"']
+                                 '"xpath":["\/html\/head\/title"',
+                                 'invalid parameter value for aura.format']
         self._injections_to_check = ['syntax', '<poc>', '64poc', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
-        self._xxe_to_check = ['syntax', 'root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
+        self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
         self._outputIdorDir = 'Output/Idor'
         self._outputSstiDir = 'Output/Ssti'
         self._outputSsrfDir = 'Output/Ssrf'
@@ -30,9 +33,9 @@ class BaseChecker:
         self._found_headers = set()
         self._delay_in_seconds = 5
 
-    def check_injections(self, route_exploits: []):
+    def check_injections(self, injection_payloads: []):
 
-        for index, request in enumerate(route_exploits):
+        for index, request in enumerate(injection_payloads):
             request = f'{request}'.encode()
             try:
                 response = requests_raw.raw(url=self._main_input.target_url,
@@ -42,16 +45,17 @@ class BaseChecker:
 
                 web_page = response.text.lower()
                 self.injection_keyword_checks(web_page, response, request)
-                if response.status_code == 500:
-                    log_header_msg = f'500 Status: {response.status_code} - {web_page[0:100]}'
-                    print(log_header_msg)
-                    self.save_found(log_header_msg, [request], self._outputInjectionsDir)
+                # if response.status_code == 500:
+                #     log_header_msg = f'500 Status: {response.status_code} - {web_page[0:100]}'
+                #     print(log_header_msg)
+                #     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
             except:
                 break
 
-    def check_idor(self, idor_payloads: []):
-        for idor_requests in idor_payloads:
+    def check_idor(self, idor_payloads: List[Idor]):
+        for idor_payload in idor_payloads:
             check_results = []
+            idor_requests = idor_payload.requests
             for request in idor_requests:
                 try:
                     response = requests_raw.raw(
@@ -70,7 +74,8 @@ class BaseChecker:
                 responses_length = [len(response.text) for response in check_results]
                 responses_length.append(len(self._main_input.first_resp.text))
                 if len(responses_length) == len(set(responses_length)):
-                    log_header_msg = f'FOUND IDOR: {idor_requests[0][0:100]};' \
+                    log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
+                                     f'REQUEST: {request[0:100]}; ' \
                                      f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
@@ -165,6 +170,7 @@ class BaseChecker:
             f.write(f"{'-' * 100}\n")
         f.close()
         self.is_found = True
+        self._found_headers.add(log_header_msg)
 
     def injection_keyword_checks(self, web_page: str, response, request):
         for keyword in self._injections_to_check:
