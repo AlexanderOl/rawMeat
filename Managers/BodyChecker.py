@@ -21,11 +21,8 @@ class BodyChecker(BaseChecker):
         self._ssti_result = []
         self._ssrf_result = []
         self._xxe_result = []
-        self._xxe_payload = '<?xml version="1.0" encoding="ISO-8859-1"?>' \
-                            '<!DOCTYPE mytype [' \
-                            '<!ELEMENT mytype ANY>' \
-                            '<!ENTITY name "XXE">' \
-                            ']>' \
+        self._xxe_payload = '<!--?xml version="1.0" ?-->' \
+                            '<!DOCTYPE replace [<!ENTITY name "XXE"> ]>' \
                             '<foo>&name; found!</foo>'
 
     def run(self):
@@ -194,10 +191,12 @@ class BodyChecker(BaseChecker):
                         self._inject_result.append('\n\n'.join(splitted_req))
 
     def __create_xxe_payloads(self):
-        splitted_req = self._main_input.first_req.split('\n\n')
-        if len(splitted_req) == 2:
-            self._xxe_result.append(
-                f'{splitted_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')
-        else:
-            self._xxe_result.append(
-                f'{self._main_input.first_req}\nContent-Type: application/xml\n\n{self._xxe_payload}')
+        splitted_verb_req = self._main_input.first_req.split(' ', 1)
+
+        if splitted_verb_req[0] == 'GET':
+            splitted_verb_req[0] = 'POST'
+
+        splitted_body_req = splitted_verb_req[1].split('\n\n', 1)
+
+        self._xxe_result.append(
+            f'{splitted_verb_req[0]} {splitted_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')

@@ -148,7 +148,8 @@ class ParamChecker(BaseChecker):
             else:
                 param_value = str(param_split[0])
 
-            if param_value.startswith('http'):
+            if param_value.startswith('http') or \
+                    any(word in param_split[0] for word in ['url', 'redirect']):
                 ssrf_payload = urllib.parse.quote(f'{self._main_input.ngrok_url}/param_{param_split[0]}', safe='')
                 main_url_split = self._main_input.first_req.split(param, 1)
                 if len(param_split) == 2:

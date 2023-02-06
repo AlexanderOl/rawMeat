@@ -18,7 +18,9 @@ class BaseChecker:
         self._false_positives = ['malformed request syntax',
                                  'use esm export syntax, instead:',
                                  '"xpath":["\/html\/head\/title"',
-                                 'invalid parameter value for aura.format']
+                                 'invalid parameter value for aura.format',
+                                 'To enable the details of this specific',
+                                 '<customErrors mode="Off"/>']
         self._injections_to_check = ['syntax', '<poc>', '64poc', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
         self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
