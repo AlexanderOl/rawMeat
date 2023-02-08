@@ -13,6 +13,7 @@ from Managers.BodyChecker import BodyChecker
 from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
 from Managers.RouteChecker import RouteChecker
+from Managers.ThreadManager import ThreadManager
 from Models.MainInput import MainInput
 
 
@@ -25,8 +26,10 @@ class SiteMapManager:
         self._request_verbs_blacklist = ['OPTIONS', 'HEAD']
         self._target_urls_filepath = 'Targets/urls.txt'
         self._history_filepath = 'Output/history.txt'
+        self._inputs_to_go_filepath = 'Output/inputs_to_go.txt'
         self._target_domain_urls = set()
         self._already_added_urls = {}
+        self._chunk_size = 10
 
     def run(self):
         if not os.path.exists(self._sitemap_dir):
@@ -44,21 +47,16 @@ class SiteMapManager:
     def __process_sitemap(self, file_request):
         self.__read_history()
 
-        main_inputs = self.__get_main_inputs(file_request)
-        counter = len(main_inputs)
-        if len(main_inputs) > 0:
-            for main_input in main_inputs:
-                print(f'SiteMap left {counter} targets. Checking - {main_input.target_url}')
-                route_checker = RouteChecker(main_input)
-                route_checker.run()
-                param_checker = ParamChecker(main_input)
-                param_checker.run()
-                body_checker = BodyChecker(main_input)
-                body_checker.run()
-                header_checker = HeaderChecker(main_input)
-                header_checker.run()
-                counter -= 1
+        main_inputs = self.__read_inputs_to_go()
+        if not main_inputs:
+            main_inputs = self.__get_main_inputs(file_request)
+            self.__write_inputs_to_go(main_inputs)
+
+        thread_man = ThreadManager()
+        thread_man.run_all(self.__run_batch, main_inputs)
+
         os.remove(file_request)
+        os.remove(self._inputs_to_go_filepath)
 
         self.__write_history()
         print(f'{file_request} file processed')
@@ -92,6 +90,11 @@ class SiteMapManager:
         print(f'Found {len(result)} requests')
 
         return result
+
+    def __divide_chunks(self, items):
+        items_to_split = list(items)
+        for i in range(0, len(items_to_split), self._chunk_size):
+            yield items_to_split[i:i + self._chunk_size]
 
     def __check_if_added(self, base_url, path, http_verb: str):
         is_already_added = False
@@ -135,9 +138,21 @@ class SiteMapManager:
             file.close()
             self._already_added_urls = data
 
+    def __read_inputs_to_go(self):
+        if os.path.exists(self._inputs_to_go_filepath) and os.path.getsize(self._inputs_to_go_filepath) > 0:
+            file = open(self._inputs_to_go_filepath, 'rb')
+            data = pickle.load(file)
+            file.close()
+            return data
+
     def __write_history(self):
         json_file = open(self._history_filepath, 'wb')
         pickle.dump(self._already_added_urls, json_file)
+        json_file.close()
+
+    def __write_inputs_to_go(self, main_inputs):
+        json_file = open(self._inputs_to_go_filepath, 'wb')
+        pickle.dump(main_inputs, json_file)
         json_file.close()
 
     def __prepare_first_request(self, item):
@@ -155,17 +170,32 @@ class SiteMapManager:
         if port not in [80, 443]:
             port_part = f':{port}'
 
-        target_url = f'{protocol}://{host}{port_part}/'
-        first_request = base64.b64decode(item.find('request').text)
-        path = item.find('path').text
+        try:
+            target_url = f'{protocol}://{host}{port_part}/'
+            first_request = base64.b64decode(item.find('request').text)
+            path = item.find('path').text
 
-        http_verb = str(first_request.decode()).split(' ', 1)[0]
+            http_verb = str(first_request.decode()).split(' ', 1)[0]
 
-        is_added = self.__check_if_added(target_url, path, http_verb)
-        if is_added:
+            is_added = self.__check_if_added(target_url, path, http_verb)
+            if is_added:
+                return None, None
+
+            if http_verb in self._request_verbs_blacklist:
+                return None, None
+        except Exception as inst:
+            print(f'Unable to perform first request on {target_url}; Exception: {inst}')
             return None, None
-
-        if http_verb in self._request_verbs_blacklist:
-            return None, None
-
         return target_url, first_request
+
+    def __run_batch(self, main_input):
+        print(f'{main_input.target_url} checking...')
+        route_checker = RouteChecker(main_input)
+        route_checker.run()
+        param_checker = ParamChecker(main_input)
+        param_checker.run()
+        body_checker = BodyChecker(main_input)
+        body_checker.run()
+        header_checker = HeaderChecker(main_input)
+        header_checker.run()
+        print(f'{main_input.target_url} finished.')

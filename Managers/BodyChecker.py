@@ -14,7 +14,7 @@ from Managers.BaseChecker import BaseChecker
 class BodyChecker(BaseChecker):
     def __init__(self, main_input: MainInput):
         super().__init__(main_input)
-        self._json_dive_level = 3
+        self._max_depth = 3
         self._json_pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
         self._inject_result = []
         self._idor_result: List[Idor] = []
@@ -26,10 +26,11 @@ class BodyChecker(BaseChecker):
                             '<foo>&name; found!</foo>'
 
     def run(self):
+        curr_depth = 1
         found_jsons = set(self._json_pattern.findall(self._main_input.first_req))
         if len(found_jsons) > 0:
             for found in found_jsons:
-                self.__create_recursive_json_payloads(found)
+                self.__create_recursive_json_payloads(found, curr_depth)
         else:
             self.__create_body_payloads()
 
@@ -41,7 +42,12 @@ class BodyChecker(BaseChecker):
         self.check_ssrf(self._ssrf_result)
         self.check_xxe(self._xxe_result)
 
-    def __create_recursive_json_payloads(self, possible_json: str):
+    def __create_recursive_json_payloads(self, possible_json: str, curr_depth: int):
+
+        if curr_depth >= self._max_depth:
+            return
+        curr_depth += 1
+
         replaced_str = possible_json \
             .replace('\'', '"') \
             .replace('\\"', '"') \
@@ -117,7 +123,7 @@ class BodyChecker(BaseChecker):
                         self.__add_exploit(possible_json, str_json, self._inject_result)
             else:
                 for inner_possible_json in inner_found_jsons:
-                    self.__create_recursive_json_payloads(inner_possible_json)
+                    self.__create_recursive_json_payloads(inner_possible_json, curr_depth)
 
     def __add_exploit(self, old_json, new_json, result_list: []):
 

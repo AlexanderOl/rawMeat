@@ -29,6 +29,7 @@ class RawManager:
         else:
             print(f'{len(files)} files will be processed')
             for file in files:
+                print(f'{file} processing...')
                 self.__process_file_request(file)
 
     def __process_file_request(self, file_request):

@@ -19,7 +19,8 @@ class BaseChecker:
                                  'use esm export syntax, instead:',
                                  '"xpath":["\/html\/head\/title"',
                                  'invalid parameter value for aura.format',
-                                 'To enable the details of this specific',
+                                 'known to have no newer js syntax',
+                                 'to enable the details of this specific',
                                  '<customErrors mode="Off"/>']
         self._injections_to_check = ['syntax', '<poc>', '64poc', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
@@ -55,32 +56,33 @@ class BaseChecker:
                 break
 
     def check_idor(self, idor_payloads: List[Idor]):
-        for idor_payload in idor_payloads:
-            check_results = []
-            idor_requests = idor_payload.requests
-            for request in idor_requests:
-                try:
-                    response = requests_raw.raw(
-                        url=self._main_input.target_url,
-                        data=request.encode(),
-                        allow_redirects=False,
-                        timeout=5)
-                    if response.status_code != self._main_input.first_resp.status_code:
-                        check_results = []
-                        break
-                    check_results.append(response)
-                except:
-                    break
-
-            if len(check_results) == len(idor_requests):
-                responses_length = [len(response.text) for response in check_results]
-                responses_length.append(len(self._main_input.first_resp.text))
-                if len(responses_length) == len(set(responses_length)):
-                    log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
-                                     f'REQUEST: {request[0:100]}; ' \
-                                     f'FILE: {self._main_input.output_filename}'
-                    print(log_header_msg)
-                    self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
+        return
+        # for idor_payload in idor_payloads:
+        #     check_results = []
+        #     idor_requests = idor_payload.requests
+        #     for request in idor_requests:
+        #         try:
+        #             response = requests_raw.raw(
+        #                 url=self._main_input.target_url,
+        #                 data=request.encode(),
+        #                 allow_redirects=False,
+        #                 timeout=5)
+        #             if response.status_code != self._main_input.first_resp.status_code:
+        #                 check_results = []
+        #                 break
+        #             check_results.append(response)
+        #         except:
+        #             break
+        #
+        #     if len(check_results) == len(idor_requests):
+        #         responses_length = [len(response.text) for response in check_results]
+        #         responses_length.append(len(self._main_input.first_resp.text))
+        #         if len(responses_length) == len(set(responses_length)):
+        #             log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
+        #                              f'REQUEST: {request[0:100]}; ' \
+        #                              f'FILE: {self._main_input.output_filename}'
+        #             print(log_header_msg)
+        #             self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
 
     def check_ssti(self, ssti_payloads: []):
         for ssti_requests in ssti_payloads:
@@ -118,7 +120,7 @@ class BaseChecker:
 
                 if str(response.status_code).startswith('3') \
                         and 'Location' in response.headers \
-                        and 'ngrok' in response.headers['Location']:
+                        and response.headers['Location'].startswith(self._main_input.ngrok_url):
                     log_header_msg = f'FOUND REDIRECT! FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, [request], self._outputSsrfDir)
@@ -137,21 +139,24 @@ class BaseChecker:
                                             timeout=5)
 
                 web_page = response.text.lower()
-                self.xxe_keyword_checks(web_page, response, request)
+                if response.status_code == 405:
+                    continue
                 if response.status_code == 500:
                     log_header_msg = f'Status: {response.status_code};' \
-                                     f'DETAILS: {request[0:100]};' \
+                                     f'DETAILS: {web_page[0:100]};' \
                                      f'MIME-TYPE: {response.headers["Content-Type"]};' \
                                      f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
                     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
+
+                self.xxe_keyword_checks(web_page, response, request)
 
             except:
                 continue
 
     def save_found(self, log_header_msg, check_results: [], output_dir):
         if log_header_msg in self._found_headers:
-            print(f'{log_header_msg} already added')
+            print(f'{log_header_msg} ALREADY ADDED')
             return
 
         if not os.path.exists(output_dir):
@@ -176,12 +181,13 @@ class BaseChecker:
 
     def injection_keyword_checks(self, web_page: str, response, request):
         for keyword in self._injections_to_check:
-            if keyword in web_page and keyword not in self._main_input.first_resp.text.lower()\
+            if keyword in web_page \
+                    and keyword not in self._main_input.first_resp.text.lower()\
                     and not any(word in web_page for word in self._false_positives):
                 substr_index = web_page.find(keyword)
                 start_index = substr_index - 50 if substr_index - 50 > 0 else 0
                 last_index = substr_index + 50 if substr_index + 50 < len(web_page) else substr_index
-                log_header_msg = f'injFOUND: "{keyword}";' \
+                log_header_msg = f'INJECTION_FOUND: "{keyword}";' \
                                  f'STATUS: {response.status_code};' \
                                  f'DETAILS: {web_page[start_index:last_index]};' \
                                  f'MIME-TYPE: {response.headers["Content-Type"]};' \
