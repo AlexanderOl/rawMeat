@@ -21,8 +21,12 @@ class BaseChecker:
                                  'invalid parameter value for aura.format',
                                  'known to have no newer js syntax',
                                  'to enable the details of this specific',
+                                 'the request cannot be fulfilled due to bad',
+                                 'http 404. the resource you are looking for',
+                                 'symantecinternalerror',
+                                 'a potentially dangerous request',
                                  '<customErrors mode="Off"/>']
-        self._injections_to_check = ['syntax', '<poc>', '64poc', 'xpath', 'internalerror', 'warning: ',
+        self._injections_to_check = ['syntax', '<poc>', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
         self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
         self._outputIdorDir = 'Output/Idor'

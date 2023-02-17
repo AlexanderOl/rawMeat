@@ -56,15 +56,18 @@ class RawManager:
 
     def __get_main_input(self, file_request) -> MainInput:
 
-        output_filename = f'{str(uuid.uuid4())[:8]}.txt'
+
 
         if not os.path.exists(self._output_dir):
             os.mkdir(self._output_dir)
 
-        shutil.copyfile(file_request, f'{self._output_dir}/{output_filename}')
         text_file = open(file_request, "r")
         request = f'{text_file.read()}\r\n'
         host = request.split('\nHost: ')[1].split('\n')[0]
+
+        output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
+        shutil.copyfile(file_request, f'{self._output_dir}/{output_filename}')
+
         if 'HTTP/1.1' in request:
             target_url = f'https://{host}/'
             first_request = request.encode()

@@ -79,7 +79,9 @@ class SiteMapManager:
             if not target_url or not first_request:
                 continue
 
-            output_filename = f'{str(uuid.uuid4())[:8]}.txt'
+            host = item.find('host').text
+            output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
+
             try:
                 first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngok_url))
@@ -189,7 +191,6 @@ class SiteMapManager:
         return target_url, first_request
 
     def __run_batch(self, main_input):
-        print(f'{main_input.target_url} checking...')
         route_checker = RouteChecker(main_input)
         route_checker.run()
         param_checker = ParamChecker(main_input)
@@ -198,4 +199,4 @@ class SiteMapManager:
         body_checker.run()
         header_checker = HeaderChecker(main_input)
         header_checker.run()
-        print(f'{main_input.target_url} finished.')
+
