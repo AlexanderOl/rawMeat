@@ -1,4 +1,5 @@
 import base64
+import distutils.util
 import glob
 import os
 import pickle
@@ -20,9 +21,10 @@ from Models.MainInput import MainInput
 class SiteMapManager:
     def __init__(self):
         self._sitemap_dir = os.environ.get('sitemap_dir')
-        self._ngok_url = os.environ.get('ngok_url')
+        self._ngrok_url = os.environ.get('ngrok_url')
         self._output_dir = os.environ.get('output_dir')
         self._out_of_scope_keys = os.environ.get('out_of_scope_keys').split(';')
+        self._urls_txt_filter_enabled = distutils.util.strtobool(os.environ.get('urls_txt_filter_enabled'))
         self._request_verbs_blacklist = ['OPTIONS', 'HEAD']
         self._target_urls_filepath = 'Targets/urls.txt'
         self._history_filepath = 'Output/history.txt'
@@ -84,7 +86,7 @@ class SiteMapManager:
 
             try:
                 first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
-                result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngok_url))
+                result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
                 print(f'Exception ({inst}) on url: {target_url}')
                 continue
@@ -104,7 +106,7 @@ class SiteMapManager:
         params_to_check = filter(None, parsed.query.split("&"))
         key_to_check = ''
         for param_to_check in params_to_check:
-            param_value_split = param_to_check.split('=')
+            param_value_split = str(param_to_check).split('=')
             key_to_check += f'{param_value_split[0]};'
 
         if path[0] == '/':
@@ -159,8 +161,9 @@ class SiteMapManager:
 
     def __prepare_first_request(self, item):
         host = item.find('host').text
-        if not any(host in url for url in self._target_domain_urls):
-            return None, None
+        if self._urls_txt_filter_enabled:
+            if not any(host in url for url in self._target_domain_urls):
+                return None, None
 
         if any(key in host for key in self._out_of_scope_keys):
             return None, None
@@ -172,8 +175,8 @@ class SiteMapManager:
         if port not in [80, 443]:
             port_part = f':{port}'
 
+        target_url = f'{protocol}://{host}{port_part}/'
         try:
-            target_url = f'{protocol}://{host}{port_part}/'
             first_request = base64.b64decode(item.find('request').text)
             path = item.find('path').text
 

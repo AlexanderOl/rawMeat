@@ -239,13 +239,13 @@ class BaseChecker:
 
     def __send_time_based_request(self, true_request, with_delay):
         try:
-            response1 = requests_raw.raw(url=self._main_input.target_url,
+            response = requests_raw.raw(url=self._main_input.target_url,
                                          data=true_request,
                                          allow_redirects=False,
                                          timeout=10)
-            if response1 is not None and with_delay and response1.elapsed.total_seconds() >= self._delay_in_seconds:
+            if response is not None and with_delay and response.elapsed.total_seconds() >= self._delay_in_seconds:
                 return True
-            if response1 is not None and not with_delay and response1.elapsed.total_seconds() < self._delay_in_seconds:
+            if response is not None and not with_delay and response.elapsed.total_seconds() < self._delay_in_seconds:
                 return True
             return False
         except (RequestException, ReadTimeoutError):

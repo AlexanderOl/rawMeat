@@ -16,7 +16,7 @@ from Models.MainInput import MainInput
 class RawManager:
     def __init__(self):
         self._raw_dir = os.environ.get('raw_request_dir')
-        self._ngok_url = os.environ.get('ngok_url')
+        self._ngrok_url = os.environ.get('ngrok_url')
         self._output_dir = os.environ.get('output_dir')
 
     def run(self):
@@ -56,8 +56,6 @@ class RawManager:
 
     def __get_main_input(self, file_request) -> MainInput:
 
-
-
         if not os.path.exists(self._output_dir):
             os.mkdir(self._output_dir)
 
@@ -78,7 +76,7 @@ class RawManager:
 
         try:
             first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
-            return MainInput(target_url, first_request, first_response, output_filename, self._ngok_url)
+            return MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url)
 
         except Exception as inst:
             print(f'Url ({target_url}) - Exception: {inst}')
