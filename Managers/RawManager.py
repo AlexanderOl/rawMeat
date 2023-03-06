@@ -75,7 +75,7 @@ class RawManager:
         text_file.close()
 
         try:
-            first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
+            first_response = requests_raw.raw(url=target_url, data=first_request, timeout=15)
             return MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url)
 
         except Exception as inst:

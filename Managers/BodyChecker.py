@@ -150,8 +150,8 @@ class BodyChecker(BaseChecker):
             elif old in self._main_input.first_req.replace('\\"', '"') \
                     .replace(':"{', ':{') \
                     .replace('}",', '},'):
-                print(f'Unable to parse - {new_json}')
-                return
+                exploit = self._main_input.first_req.replace('\\"', '"').replace(':"{', ':{').replace('}",', '},')
+                exploit.replace(old, new_json)
             else:
                 first_10_chars_to_replace = self._main_input.first_req.find(new_json[:10])
                 last_10_chars_to_replace = self._main_input.first_req.find(new_json[-10:])

@@ -11,7 +11,7 @@ from Models.MainInput import MainInput
 
 class BaseChecker:
     def __init__(self, main_input: MainInput):
-        self._injection_payloads = ['%27', '\\', '<poc>', '%22', '%5C', '\'', '{{888*888}}', '"%2bstr(888*888)%2b"']
+        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'', '{{888*888}}', '"%2bstr(888*888)%2b"']
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''}
             ]
@@ -26,7 +26,7 @@ class BaseChecker:
                                  'symantecinternalerror',
                                  'a potentially dangerous request',
                                  '<customErrors mode="Off"/>']
-        self._injections_to_check = ['syntax', '<poc>', 'xpath', 'internalerror', 'warning: ',
+        self._injections_to_check = ['syntax', '<poc>', '""poc\'\'', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
         self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
         self._outputIdorDir = 'Output/Idor'
@@ -52,41 +52,41 @@ class BaseChecker:
 
                 web_page = response.text.lower()
                 self.injection_keyword_checks(web_page, response, request)
-                # if response.status_code == 500:
-                #     log_header_msg = f'500 Status: {response.status_code} - {web_page[0:100]}'
-                #     print(log_header_msg)
-                #     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
+                if response.status_code == 500:
+                    log_header_msg = f'500 Status: {response.status_code} - {web_page[0:100]}'
+                    print(log_header_msg)
+                    # self.save_found(log_header_msg, [request], self._outputInjectionsDir)
             except:
                 break
 
     def check_idor(self, idor_payloads: List[Idor]):
-        return
-        # for idor_payload in idor_payloads:
-        #     check_results = []
-        #     idor_requests = idor_payload.requests
-        #     for request in idor_requests:
-        #         try:
-        #             response = requests_raw.raw(
-        #                 url=self._main_input.target_url,
-        #                 data=request.encode(),
-        #                 allow_redirects=False,
-        #                 timeout=5)
-        #             if response.status_code != self._main_input.first_resp.status_code:
-        #                 check_results = []
-        #                 break
-        #             check_results.append(response)
-        #         except:
-        #             break
-        #
-        #     if len(check_results) == len(idor_requests):
-        #         responses_length = [len(response.text) for response in check_results]
-        #         responses_length.append(len(self._main_input.first_resp.text))
-        #         if len(responses_length) == len(set(responses_length)):
-        #             log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
-        #                              f'REQUEST: {request[0:100]}; ' \
-        #                              f'FILE: {self._main_input.output_filename}'
-        #             print(log_header_msg)
-        #             self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
+        # return
+        for idor_payload in idor_payloads:
+            check_results = []
+            idor_requests = idor_payload.requests
+            for request in idor_requests:
+                try:
+                    response = requests_raw.raw(
+                        url=self._main_input.target_url,
+                        data=request.encode(),
+                        allow_redirects=False,
+                        timeout=5)
+                    if response.status_code != self._main_input.first_resp.status_code:
+                        check_results = []
+                        break
+                    check_results.append(response)
+                except:
+                    break
+
+            if len(check_results) == len(idor_requests):
+                responses_length = [len(response.text) for response in check_results]
+                responses_length.append(len(self._main_input.first_resp.text))
+                if len(responses_length) == len(set(responses_length)):
+                    log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
+                                     f'REQUEST: {request[0:100]}; ' \
+                                     f'FILE: {self._main_input.output_filename}'
+                    print(log_header_msg)
+                    self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
 
     def check_ssti(self, ssti_payloads: []):
         for ssti_requests in ssti_payloads:
