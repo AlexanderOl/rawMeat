@@ -55,11 +55,15 @@ class AuthChecker:
             victim_main_inputs = self._victim_list[target_url]
             if not victim_main_inputs:
                 continue
-            status_code, auth_cookie_param, raw_cookies = self.__find_auth_cookie_param(victim_main_inputs[0])
-            if not auth_cookie_param:
-                print(f'({target_url}) Cookies do not affect the user authentication')
-                continue
+            auth_cookie_param = ''
             for curr_input in victim_main_inputs:
+                if not auth_cookie_param:
+                    auth_cookie_param = self.__find_auth_cookie_param(curr_input)
+                    if not auth_cookie_param:
+                        print(f'({target_url}) Cookies do not affect the user authentication')
+                        continue
+                    else:
+                        print(f'({target_url}) Auth param found - {auth_cookie_param}')
                 self.__check_idor(curr_input, self._attacker_url_cookies[target_url])
 
     def __check_idor(self, curr_input: MainInput, attacker_cookie):
@@ -74,7 +78,7 @@ class AuthChecker:
             splitted = curr_input.first_req.split(' ', 2)
             log_header_msg = f'Auth IDOR Method: {splitted[0]}; ' \
                              f'URL: {curr_input.target_url}{splitted[1]}; ' \
-                             f'FFILE: {curr_input.output_filename}'
+                             f'FILE: {curr_input.output_filename}'
             print(log_header_msg)
             bc = BaseChecker(curr_input)
             bc.save_found(log_header_msg, [new_request, curr_input.first_req], self._outputAuthDir)
@@ -82,12 +86,16 @@ class AuthChecker:
     def __find_auth_cookie_param(self, main_input):
         cookie_split = main_input.first_req.split('Cookie: ')
         if len(cookie_split) == 2:
-            raw_cookies = cookie_split[1].split('\n')[0]
-            cookie = SimpleCookie()
-            cookie.load(raw_cookies)
+            raw_cookies = str(cookie_split[1].split('\n')[0]).strip()
+
             cookies = {}
-            for key, morsel in cookie.items():
-                cookies[key] = morsel.value
+            cookies_k_v = raw_cookies.split('; ')
+            for k_v in cookies_k_v:
+                splitted = k_v.split('=')
+                if len(splitted) == 2:
+                    cookies[splitted[0]] = splitted[1]
+                else:
+                    cookies[splitted[0]] = ''
 
             cookie_requests = {}
             for item in cookies:
@@ -108,9 +116,9 @@ class AuthChecker:
                     continue
 
                 if response.status_code != init_status_code and response.status_code != self._avoid_status_code:
-                    return response.status_code, cookie_param, raw_cookies
+                    return cookie_param
 
-            return None, None, None
+            return None
 
     # def __check_group(self, group: List[MainInput]):
     #     auth_cookie_param = ''
