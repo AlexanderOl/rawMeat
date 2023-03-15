@@ -1,15 +1,19 @@
 import base64
+import urllib3
 import distutils.util
 import glob
 import os
 import pickle
+import re
 import urllib
 import uuid
+import xml.etree.ElementTree as ET
+from typing import List
 from urllib.parse import urlparse
 
 import requests_raw
-import xml.etree.ElementTree as ET
-from typing import List
+
+from Managers.AuthChecker import AuthChecker
 from Managers.BodyChecker import BodyChecker
 from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
@@ -32,6 +36,8 @@ class SiteMapManager:
         self._target_domain_urls = set()
         self._already_added_urls = {}
         self._chunk_size = 10
+        self._auth_man = AuthChecker()
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def run(self):
         if not os.path.exists(self._sitemap_dir):
@@ -54,8 +60,11 @@ class SiteMapManager:
             main_inputs = self.__get_main_inputs(file_request)
             self.__write_inputs_to_go(main_inputs)
 
-        thread_man = ThreadManager()
-        thread_man.run_all(self.__run_batch, main_inputs)
+        if re.search(r"a\w*", file_request):
+            self._auth_man.run(file_request, main_inputs)
+        else:
+            thread_man = ThreadManager()
+            thread_man.run_all(self.__run_batch, main_inputs)
 
         os.remove(file_request)
         os.remove(self._inputs_to_go_filepath)
@@ -75,17 +84,19 @@ class SiteMapManager:
         tree = ET.parse(file_request)
         root = tree.getroot()
         for item in root.findall('item'):
+            check_is_disabled = re.search(r"a\w*", file_request)
+            target_url, first_request = self.__prepare_first_request(item,
+                                                                     disable_dupl_check=check_is_disabled)
 
-            target_url, first_request = self.__prepare_first_request(item)
-
-            if not target_url or not first_request:
+            mime_type = item.find('mimetype').text
+            if not target_url or not first_request or mime_type == 'script':
                 continue
 
             host = item.find('host').text
             output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
 
             try:
-                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5)
+                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5, verify=False)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
                 print(f'Exception ({inst}) on url: {target_url}')
@@ -159,7 +170,7 @@ class SiteMapManager:
         pickle.dump(main_inputs, json_file)
         json_file.close()
 
-    def __prepare_first_request(self, item):
+    def __prepare_first_request(self, item, disable_dupl_check):
         host = item.find('host').text
         if self._urls_txt_filter_enabled:
             if not any(host in url for url in self._target_domain_urls):
@@ -182,9 +193,10 @@ class SiteMapManager:
 
             http_verb = str(first_request.decode()).split(' ', 1)[0]
 
-            is_added = self.__check_if_added(target_url, path, http_verb)
-            if is_added:
-                return None, None
+            if not disable_dupl_check:
+                is_added = self.__check_if_added(target_url, path, http_verb, )
+                if is_added:
+                    return None, None
 
             if http_verb in self._request_verbs_blacklist:
                 return None, None

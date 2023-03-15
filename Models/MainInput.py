@@ -1,8 +1,10 @@
+from requests import Response
+
 
 class MainInput:
     def __init__(self, target_url: str,
                  first_req: bytes,
-                 first_resp,
+                 first_resp: Response,
                  output_filename: str,
                  ngrok_url: str):
         self._target_url = target_url
@@ -20,7 +22,7 @@ class MainInput:
         return str(self._first_req)
 
     @property
-    def first_resp(self):
+    def first_resp(self) -> Response:
         return self._first_resp
 
     @property

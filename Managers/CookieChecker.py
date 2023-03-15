@@ -40,7 +40,7 @@ class CookieChecker(BaseChecker):
                     payload_str = f'{item}={payload}'
                     res = self._main_input.first_req.replace(original_str, payload_str)
                     injection_results.append(res)
-                if str(cookies[item]).startswith('http'):
+                if str(cookies[item]).startswith('http') or str(cookies[item]).startswith('/'):
                     ssrf_payload = \
                         urllib.parse.quote(f'{self._main_input.ngrok_url}/cookie_{cookies[item]}',
                                            safe='')
