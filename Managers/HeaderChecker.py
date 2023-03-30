@@ -1,14 +1,24 @@
+
+from urllib.parse import urlparse
+from copy import deepcopy
+
 from Managers.BaseChecker import BaseChecker
 from Models.MainInput import MainInput
 
 
 class HeaderChecker(BaseChecker):
-    def __int__(self, main_input: MainInput):
+    def __init__(self, main_input: MainInput):
         super(HeaderChecker, self).__init__(main_input)
+        self._known_headers = ['Host', 'Cookie', 'Accept', 'Accept-Language', 'Accept-Encoding', 'Content-Type',
+                                   'Sec-Fetch-Dest', 'Sec-Fetch-Mode', 'Sec-Fetch-Site', 'Te']
 
     def run(self):
         self.__check_location_header()
         self.__check_xml_content_type()
+
+        injection_payloads, time_based_payloads = self.__get_headers_payloads()
+        super().check_injections(injection_payloads)
+        super().check_time_based_injections(time_based_payloads)
 
     def __check_xml_content_type(self):
         for keyword in ['Content-Type: application/xml',
@@ -30,3 +40,33 @@ class HeaderChecker(BaseChecker):
         payload = f'{splitted_body_req[0]}\nLocation: {self._main_input.ngrok_url}\n\n{body}'
 
         super().check_ssrf([payload])
+
+    def __get_headers_payloads(self) -> []:
+        splitted_body_req = self._main_input.first_req.split('\n\n', 1)
+        headers_dict = {pair[0]: pair[1] for pair in
+                        [item.split(':', 1) for item in splitted_body_req[0].split('\n')[1:] if ':' in item]}
+
+        new_headers = {header: headers_dict[header] for header in
+                       [key for key in headers_dict if key not in self._known_headers]}
+
+        injection_payloads = []
+        time_based_payloads = []
+
+        if new_headers:
+            for key in new_headers:
+                for payload in self._injection_payloads:
+                    old = f'{key}:{new_headers[key]}'
+                    new = f'{key}:{new_headers[key]}{payload}'
+                    new_request = self._main_input.first_req.replace(old, new)
+                    injection_payloads.append(new_request)
+
+                for payload in self._time_based_payloads:
+                    old = f'{key}:{new_headers[key]}'
+                    true = f'{key}:{new_headers[key]}{payload["True"]}'
+                    false = f'{key}:{new_headers[key]}{payload["False"]}'
+                    new_true_request = self._main_input.first_req.replace(old, true)
+                    new_false_request = self._main_input.first_req.replace(old, false)
+                    time_based_payloads.append({'True': new_true_request, 'False': new_false_request})
+
+        return injection_payloads, time_based_payloads
+

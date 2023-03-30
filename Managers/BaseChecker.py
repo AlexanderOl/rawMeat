@@ -13,7 +13,10 @@ class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'', '{{888*888}}', '"%2bstr(888*888)%2b"']
         self._time_based_payloads = [
-            {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''}
+            {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},
+            {'True': '"OR(if(1=1,sleep(5),0))OR"', 'False': '"OR(if(1=2,sleep(5),0))OR"'},
+            {'True': '1\'; WAITFOR DELAY \'00:00:05', 'False': '1; WAITFOR DELAY \'00:00:00'},
+            {'True': '\' OR \'1\'>(SELECT \'1\' FROM PG_SLEEP(5)) OR \'', 'False': '\' OR \'1\'>(SELECT \'1\' FROM PG_SLEEP(0)) OR \''}
             ]
         self._false_positives = ['malformed request syntax',
                                  'use esm export syntax, instead:',
@@ -47,6 +50,7 @@ class BaseChecker:
             try:
                 response = requests_raw.raw(url=self._main_input.target_url,
                                             data=request,
+                                            verify=False,
                                             allow_redirects=False,
                                             timeout=5)
 
@@ -69,6 +73,7 @@ class BaseChecker:
                     response = requests_raw.raw(
                         url=self._main_input.target_url,
                         data=request.encode(),
+                        verify=False,
                         allow_redirects=False,
                         timeout=5)
                     if response.status_code != self._main_input.first_resp.status_code:
@@ -95,6 +100,7 @@ class BaseChecker:
                 try:
                     response = requests_raw.raw(url=self._main_input.target_url,
                                                 data=request.encode(),
+                                                verify=False,
                                                 allow_redirects=False,
                                                 timeout=5)
                     if response.status_code != self._main_input.first_resp.status_code:
@@ -119,6 +125,7 @@ class BaseChecker:
             try:
                 response = requests_raw.raw(url=self._main_input.target_url,
                                  data=request,
+                                 verify=False,
                                  allow_redirects=False,
                                  timeout=5)
 
@@ -139,6 +146,7 @@ class BaseChecker:
             try:
                 response = requests_raw.raw(url=self._main_input.target_url,
                                             data=request,
+                                            verify=False,
                                             allow_redirects=False,
                                             timeout=5)
 
@@ -241,6 +249,7 @@ class BaseChecker:
         try:
             response = requests_raw.raw(url=self._main_input.target_url,
                                          data=true_request,
+                                         verify=False,
                                          allow_redirects=False,
                                          timeout=10)
             if response is not None and with_delay and response.elapsed.total_seconds() >= self._delay_in_seconds:

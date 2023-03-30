@@ -1,3 +1,4 @@
+import os
 import re
 from http.cookies import SimpleCookie
 
@@ -15,9 +16,10 @@ class AuthChecker:
         self._attacker_url_cookies = {}
 
     def run(self, file_request, main_inputs: List[MainInput]):
-        if re.search(r"a1\w*", file_request):
+        filename = os.path.basename(file_request)
+        if filename == 'a1':
             self.__add_victim(main_inputs)
-        elif re.search(r"a2\w*", file_request):
+        elif filename == 'a2':
             self.__add_attacker(main_inputs)
 
     def __add_victim(self, main_inputs: List[MainInput]):
@@ -52,28 +54,37 @@ class AuthChecker:
 
     def __run_attack(self):
         for target_url in self._attacker_url_cookies:
+
+            if target_url not in self._victim_list:
+                continue
+
             victim_main_inputs = self._victim_list[target_url]
             if not victim_main_inputs:
                 continue
+
             auth_cookie_param = ''
+            checked_cookies = ''
             for curr_input in victim_main_inputs:
                 if not auth_cookie_param:
-                    auth_cookie_param = self.__find_auth_cookie_param(curr_input)
+                    auth_cookie_param, cookies_set = self.__find_auth_cookie_param(curr_input, checked_cookies)
                     if not auth_cookie_param:
-                        print(f'({target_url}) Cookies do not affect the user authentication')
+                        checked_cookies = cookies_set
                         continue
-                    else:
-                        print(f'({target_url}) Auth param found - {auth_cookie_param}')
+
                 self.__check_idor(curr_input, self._attacker_url_cookies[target_url])
 
     def __check_idor(self, curr_input: MainInput, attacker_cookie):
         cookie_split = curr_input.first_req.split('Cookie: ')
         raw_cookies = cookie_split[1].split('\n', 1)
         new_request = f'{cookie_split[0]}Cookie: {attacker_cookie}\n{raw_cookies[1]}'.encode()
+        try:
+            new_response = requests_raw.raw(url=curr_input.target_url, data=new_request, allow_redirects=False,
+                                            verify=False,
+                                            timeout=5)
+        except Exception as inst:
+            print(f'__check_idor Exception: {inst}')
+            return
 
-        new_response = requests_raw.raw(url=curr_input.target_url, data=new_request, allow_redirects=False,
-                                        verify=False,
-                                        timeout=5)
         if new_response.status_code == curr_input.first_resp.status_code:
             splitted = curr_input.first_req.split(' ', 2)
             log_header_msg = f'Auth IDOR Method: {splitted[0]}; ' \
@@ -83,19 +94,24 @@ class AuthChecker:
             bc = BaseChecker(curr_input)
             bc.save_found(log_header_msg, [new_request, curr_input.first_req], self._outputAuthDir)
 
-    def __find_auth_cookie_param(self, main_input):
+    def __find_auth_cookie_param(self, main_input, cookies_check_set):
         cookie_split = main_input.first_req.split('Cookie: ')
         if len(cookie_split) == 2:
             raw_cookies = str(cookie_split[1].split('\n')[0]).strip()
 
             cookies = {}
             cookies_k_v = raw_cookies.split('; ')
+            cookies_set = set()
             for k_v in cookies_k_v:
                 splitted = k_v.split('=')
                 if len(splitted) == 2:
                     cookies[splitted[0]] = splitted[1]
                 else:
                     cookies[splitted[0]] = ''
+                cookies_check_set.add(splitted[0])
+
+            if cookies_set == cookies_check_set:
+                return None, raw_cookies
 
             cookie_requests = {}
             for item in cookies:
@@ -116,9 +132,11 @@ class AuthChecker:
                     continue
 
                 if response.status_code != init_status_code and response.status_code != self._avoid_status_code:
-                    return cookie_param
+                    print(f'({main_input.target_url}) Auth param found - {cookie_param}')
+                    return cookie_param, cookies_set
 
-            return None
+            print(f'({main_input.target_url}) Cookies do not affect the user authentication')
+            return None, cookies_set
 
     # def __check_group(self, group: List[MainInput]):
     #     auth_cookie_param = ''

@@ -1,4 +1,4 @@
-import urllib
+from urllib.parse import urlparse
 from copy import deepcopy
 from typing import List
 
@@ -31,7 +31,7 @@ class ParamChecker(BaseChecker):
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
@@ -51,7 +51,7 @@ class ParamChecker(BaseChecker):
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
@@ -61,7 +61,7 @@ class ParamChecker(BaseChecker):
                 if len(param_split) == 2:
                     true_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["True"]}{main_url_split[1]}'
                     false_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["False"]}{main_url_split[1]}'
-                    payloads = {'True':true_payload, 'False':false_payload}
+                    payloads = {'True': true_payload, 'False': false_payload}
                 else:
                     true_payload = f'{main_url_split[0]}{param_split[0]}{payload["True"]}{main_url_split[1]}'
                     false_payload = f'{main_url_split[0]}{param_split[0]}{payload["False"]}{main_url_split[1]}'
@@ -77,7 +77,7 @@ class ParamChecker(BaseChecker):
         result: List[Idor] = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
@@ -109,7 +109,7 @@ class ParamChecker(BaseChecker):
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
@@ -138,7 +138,7 @@ class ParamChecker(BaseChecker):
         result = []
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         params = filter(None, parsed.query.split("&"))
 
         for param in params:
@@ -150,7 +150,7 @@ class ParamChecker(BaseChecker):
 
             if param_value.startswith('http') or \
                     any(word in param_split[0] for word in ['url', 'redirect']):
-                ssrf_payload = urllib.parse.quote(f'{self._main_input.ngrok_url}/param_{param_split[0]}', safe='')
+                ssrf_payload = quote(f'{self._main_input.ngrok_url}/param_{param_split[0]}', safe='')
                 main_url_split = self._main_input.first_req.split(param, 1)
                 if len(param_split) == 2:
                     result.append(f'{main_url_split[0]}{param_split[0]}={ssrf_payload}{main_url_split[1]}')

@@ -1,6 +1,7 @@
 import json
-import urllib
+from urllib.parse import quote
 import re
+
 from typing import List
 
 import regex
@@ -69,8 +70,7 @@ class BodyChecker(BaseChecker):
 
                 if str(node_value).startswith('http'):
                     copy = deepcopy(parsed_json)
-                    copy[key] = urllib.parse.quote(
-                        f'{self._main_input.ngrok_url}/body_{key}', safe='')
+                    copy[key] = quote(f'{self._main_input.ngrok_url}/body_{key}', safe='')
 
                     str_json = json.dumps(copy)
                     self.__add_exploit(possible_json, str_json, self._ssrf_result)

@@ -1,4 +1,5 @@
-import urllib
+
+from urllib.parse import quote
 from http.cookies import SimpleCookie
 from typing import List
 
@@ -42,7 +43,7 @@ class CookieChecker(BaseChecker):
                     injection_results.append(res)
                 if str(cookies[item]).startswith('http') or str(cookies[item]).startswith('/'):
                     ssrf_payload = \
-                        urllib.parse.quote(f'{self._main_input.ngrok_url}/cookie_{cookies[item]}',
+                        quote(f'{self._main_input.ngrok_url}/cookie_{cookies[item]}',
                                            safe='')
                     original_str = f'{item}={cookies[item]}'
                     payload_str = f'{item}={ssrf_payload}'

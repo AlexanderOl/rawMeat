@@ -1,4 +1,4 @@
-import urllib
+from urllib.parse import urlparse
 from copy import deepcopy
 from typing import List
 
@@ -24,7 +24,7 @@ class RouteChecker(BaseChecker):
     def get_idor_payloads(self) -> List[Idor]:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         route_parts = [r for r in parsed.path.split('/') if r.strip()]
         result: List[Idor] = []
 
@@ -49,7 +49,7 @@ class RouteChecker(BaseChecker):
     def get_ssti_payloads(self) -> []:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         route_parts = [r for r in parsed.path.split('/') if r.strip()]
         result = []
 
@@ -68,7 +68,7 @@ class RouteChecker(BaseChecker):
     def get_injection_payloads(self) -> []:
         request_parts = self._main_input.first_req.split(' ')
         route = request_parts[1]
-        parsed = urllib.parse.urlparse(route)
+        parsed = urlparse(route)
         route_parts = [r for r in parsed.path.split('/') if r.strip()]
         result = []
 

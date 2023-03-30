@@ -1,11 +1,12 @@
 import base64
-import urllib3
+import shutil
+
+from urllib3 import disable_warnings, exceptions
 import distutils.util
-import glob
+from glob import glob
 import os
 import pickle
 import re
-import urllib
 import uuid
 import xml.etree.ElementTree as ET
 from typing import List
@@ -37,13 +38,14 @@ class SiteMapManager:
         self._already_added_urls = {}
         self._chunk_size = 10
         self._auth_man = AuthChecker()
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        self._cached_inputs = {}
+        disable_warnings(exceptions.InsecureRequestWarning)
 
     def run(self):
         if not os.path.exists(self._sitemap_dir):
             os.makedirs(self._sitemap_dir)
 
-        files = glob.glob(f'{self._sitemap_dir}/*')
+        files = glob(f'{self._sitemap_dir}/*')
         if len(files) == 0:
             print(f'No files found in {self._sitemap_dir}.')
         else:
@@ -55,13 +57,22 @@ class SiteMapManager:
     def __process_sitemap(self, file_request):
         self.__read_history()
 
-        main_inputs = self.__read_inputs_to_go()
-        if not main_inputs:
-            main_inputs = self.__get_main_inputs(file_request)
-            self.__write_inputs_to_go(main_inputs)
+        found = next((s for s in self._cached_inputs if s in file_request), None)
+        if found:
+            main_inputs = self._cached_inputs.pop(found)
+        else:
+            main_inputs = self.__read_inputs_to_go()
+            if not main_inputs:
+                main_inputs = self.__get_main_inputs(file_request)
 
-        if re.search(r"a\w*", file_request):
+        self.__write_inputs_to_go(main_inputs)
+
+        if os.path.basename(file_request).startswith('a'):
             self._auth_man.run(file_request, main_inputs)
+            key = f'temp_{str(uuid.uuid4())}'
+            dst = f'{self._sitemap_dir}/{key}'
+            shutil.copyfile(file_request, dst)
+            self._cached_inputs[key] = main_inputs
         else:
             thread_man = ThreadManager()
             thread_man.run_all(self.__run_batch, main_inputs)
@@ -80,6 +91,7 @@ class SiteMapManager:
             os.mkdir(self._output_dir)
 
         self.__get_target_domain_urls()
+
 
         tree = ET.parse(file_request)
         root = tree.getroot()
@@ -113,7 +125,7 @@ class SiteMapManager:
 
     def __check_if_added(self, base_url, path, http_verb: str):
         is_already_added = False
-        parsed = urllib.parse.urlparse(path)
+        parsed = urlparse(path)
         params_to_check = filter(None, parsed.query.split("&"))
         key_to_check = ''
         for param_to_check in params_to_check:
