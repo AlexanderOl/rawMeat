@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/Output" />
       <excludeFolder url="file://$MODULE_DIR$/Targets" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (rawMeat)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.11 (rawMeat)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="linkThrasher" />
   </component>

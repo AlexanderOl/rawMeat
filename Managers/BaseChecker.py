@@ -15,7 +15,7 @@ class BaseChecker:
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},
             {'True': '"OR(if(1=1,sleep(5),0))OR"', 'False': '"OR(if(1=2,sleep(5),0))OR"'},
-            {'True': '1\'; WAITFOR DELAY \'00:00:05', 'False': '1; WAITFOR DELAY \'00:00:00'},
+            {'True': '1\'; WAITFOR DELAY \'00:00:05', 'False': '1\'; WAITFOR DELAY \'00:00:00'},
             {'True': '\' OR \'1\'>(SELECT \'1\' FROM PG_SLEEP(5)) OR \'', 'False': '\' OR \'1\'>(SELECT \'1\' FROM PG_SLEEP(0)) OR \''}
             ]
         self._false_positives = ['malformed request syntax',

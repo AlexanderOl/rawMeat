@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from copy import deepcopy
 from typing import List
 
