@@ -12,8 +12,11 @@ class AuthChecker:
     def __init__(self):
         self._outputAuthDir = 'Output/Auth'
         self._avoid_status_code = 429
-        self._victim_list = {}
-        self._attacker_url_cookies = {}
+        self._victim_list: dict[str, List[MainInput]] = {}
+        self._attacker_url_cookies: dict[str, str] = {}
+        self._attacker_auth_header_values: dict[str, str] = {}
+        self._auth_header_key = 'Authorization: '
+        self._cookie_header_key = 'Cookie: '
 
     def run(self, file_request, main_inputs: List[MainInput]):
         filename = os.path.basename(file_request)
@@ -26,7 +29,9 @@ class AuthChecker:
         self._victim_list = {}
         for main_input in main_inputs:
 
-            if main_input.first_resp.status_code != 200 or 'Cookie: ' not in main_input.first_req:
+            if main_input.first_resp.status_code != 200 or \
+                (self._cookie_header_key not in main_input.first_req
+                 and self._auth_header_key not in main_input.first_req):
                 continue
 
             if main_input.target_url in self._victim_list:
@@ -38,45 +43,45 @@ class AuthChecker:
             self.__run_attack()
 
     def __add_attacker(self, main_inputs: List[MainInput]):
-        self._attacker_url_cookies = {}
+
         for main_input in main_inputs:
 
-            if main_input.first_resp.status_code != 200 or 'Cookie: ' not in main_input.first_req:
+            if main_input.first_resp.status_code != 200:
                 continue
-            cookie_split = main_input.first_req.split('Cookie: ')
-            attacker_cookies = cookie_split[1].split('\n')[0]
+            if self._cookie_header_key in main_input.first_req:
+                cookie_split = main_input.first_req.split(self._cookie_header_key)
+                attacker_cookies = cookie_split[1].split('\n')[0]
 
-            if main_input.target_url not in self._attacker_url_cookies:
-                self._attacker_url_cookies[main_input.target_url] = attacker_cookies
+                if main_input.target_url not in self._attacker_url_cookies:
+                    self._attacker_url_cookies[main_input.target_url] = attacker_cookies
+
+            if self._auth_header_key in main_input.first_req:
+                auth_token = main_input.first_req.split(self._auth_header_key)[1].split('\n', 1)[0]
+                self._attacker_auth_header_values[main_input.target_url] = auth_token
 
         if self._victim_list:
             self.__run_attack()
 
     def __run_attack(self):
+
+        for target_url in self._attacker_auth_header_values:
+
+            if target_url not in self._victim_list:
+                continue
+
+            self.__auth_header_idor_check(target_url)
+
         for target_url in self._attacker_url_cookies:
 
             if target_url not in self._victim_list:
                 continue
 
-            victim_main_inputs = self._victim_list[target_url]
-            if not victim_main_inputs:
-                continue
-
-            auth_cookie_param = ''
-            checked_cookies = ''
-            for curr_input in victim_main_inputs:
-                if not auth_cookie_param:
-                    auth_cookie_param, cookies_set = self.__find_auth_cookie_param(curr_input, checked_cookies)
-                    if not auth_cookie_param:
-                        checked_cookies = cookies_set
-                        continue
-
-                self.__check_idor(curr_input, self._attacker_url_cookies[target_url])
+            self.__cookie_idor_check(target_url)
 
     def __check_idor(self, curr_input: MainInput, attacker_cookie):
-        cookie_split = curr_input.first_req.split('Cookie: ')
+        cookie_split = curr_input.first_req.split(self._cookie_header_key)
         raw_cookies = cookie_split[1].split('\n', 1)
-        new_request = f'{cookie_split[0]}Cookie: {attacker_cookie}\n{raw_cookies[1]}'.encode()
+        new_request = f'{cookie_split[0]}{self._cookie_header_key}{attacker_cookie}\n{raw_cookies[1]}'.encode()
         try:
             new_response = requests_raw.raw(url=curr_input.target_url, data=new_request, allow_redirects=False,
                                             verify=False,
@@ -87,15 +92,17 @@ class AuthChecker:
 
         if new_response.status_code == curr_input.first_resp.status_code:
             splitted = curr_input.first_req.split(' ', 2)
-            log_header_msg = f'Auth IDOR Method: {splitted[0]}; ' \
+            log_header_msg = f'Cookie IDOR Method: {splitted[0]}; ' \
                              f'URL: {curr_input.target_url}{splitted[1]}; ' \
                              f'FILE: {curr_input.output_filename}'
             print(log_header_msg)
             bc = BaseChecker(curr_input)
             bc.save_found(log_header_msg, [new_request, curr_input.first_req], self._outputAuthDir)
 
+
+
     def __find_auth_cookie_param(self, main_input, cookies_check_set):
-        cookie_split = main_input.first_req.split('Cookie: ')
+        cookie_split = main_input.first_req.split(self._cookie_header_key)
         if len(cookie_split) == 2:
             raw_cookies = str(cookie_split[1].split('\n')[0]).strip()
 
@@ -138,38 +145,40 @@ class AuthChecker:
             print(f'({main_input.target_url}) Cookies do not affect the user authentication')
             return None, cookies_set
 
-    # def __check_group(self, group: List[MainInput]):
-    #     auth_cookie_param = ''
-    #     auth_error_status_code = 0
-    #     auth_main_input = {}
-    #
-    #     request_count_with_diff_cookies = {}
-    #
-    #     for curr_input in group:
-    #
-    #         if not auth_cookie_param:
-    #             auth_error_status_code, auth_cookie_param, raw_cookies = self.__find_auth_cookie_param(curr_input)
-    #             auth_main_input = curr_input
-    #             break
-    #
-    #     if not auth_cookie_param:
-    #         return
-    #
-    #     for curr_input in group:
-    #         if curr_input == auth_main_input:
-    #             continue
-    #         else:
-    #             self.__check_auth_input(auth_error_status_code, auth_cookie_param, curr_input)
+    def __cookie_idor_check(self, target_url: str):
+        victim_main_inputs = self._victim_list[target_url]
+        auth_cookie_param = ''
+        checked_cookies = ''
+        for curr_input in victim_main_inputs:
+            if not auth_cookie_param:
+                auth_cookie_param, cookies_set = self.__find_auth_cookie_param(curr_input, checked_cookies)
+                if not auth_cookie_param:
+                    checked_cookies = cookies_set
+                    continue
 
-    # def __check_auth_input(self, auth_status_code, auth_cookie_param, curr_input):
-    #     raw_request = f'{curr_input.first_req.replace(auth_cookie_param, "")}'.encode()
-    #     response = requests_raw.raw(url=curr_input.target_url,
-    #                                 data=raw_request,
-    #                                 allow_redirects=False,
-    #                                 timeout=5)
-    #     if response.status_code != auth_status_code:
-    #         log_header_msg = f'Auth cookie param: {auth_cookie_param} doesn\'t affect request' \
-    #                          f'FILE: {curr_input.output_filename}'
-    #         print(log_header_msg)
-    #         bc = BaseChecker(curr_input)
-    #         bc.save_found(log_header_msg, [raw_request], self._outputAuthDir)
+            self.__check_idor(curr_input, self._attacker_url_cookies[target_url])
+
+    def __auth_header_idor_check(self, target_url):
+        victim_main_inputs = self._victim_list[target_url]
+        for curr_input in victim_main_inputs:
+            if self._auth_header_key in curr_input.first_req and target_url in self._attacker_auth_header_values:
+                attacker_auth_token = self._attacker_auth_header_values[target_url]
+                auth_split = curr_input.first_req.split(self._auth_header_key)
+                other_part = auth_split[1].split('\n', 1)
+                new_request = f'{auth_split[0]}{self._auth_header_key}{attacker_auth_token}\n{other_part[1]}'.encode()
+                try:
+                    new_response = requests_raw.raw(url=curr_input.target_url, data=new_request, allow_redirects=False,
+                                                    verify=False,
+                                                    timeout=5)
+                except Exception as inst:
+                    print(f'__check_idor Exception: {inst}')
+                    return
+
+                if new_response.status_code == curr_input.first_resp.status_code:
+                    splitted = curr_input.first_req.split(' ', 2)
+                    log_header_msg = f'Authorization Header IDOR Method: {splitted[0]}; ' \
+                                     f'URL: {curr_input.target_url}{splitted[1]}; ' \
+                                     f'FILE: {curr_input.output_filename}'
+                    print(log_header_msg)
+                    bc = BaseChecker(curr_input)
+                    bc.save_found(log_header_msg, [new_request, curr_input.first_req], self._outputAuthDir)
