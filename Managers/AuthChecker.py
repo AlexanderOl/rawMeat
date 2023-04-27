@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 from http.cookies import SimpleCookie
 
 import requests_raw
@@ -25,6 +26,7 @@ class AuthChecker:
         elif filename == 'a2':
             self.__add_attacker(main_inputs)
 
+
     def __add_victim(self, main_inputs: List[MainInput]):
         self._victim_list = {}
         for main_input in main_inputs:
@@ -38,6 +40,8 @@ class AuthChecker:
                 self._victim_list[main_input.target_url].append(main_input)
             else:
                 self._victim_list[main_input.target_url] = [main_input]
+
+        print(f'[{datetime.now().strftime("%H:%M:%S")}]: Victim added')
 
         if self._attacker_url_cookies:
             self.__run_attack()
@@ -58,6 +62,8 @@ class AuthChecker:
             if self._auth_header_key in main_input.first_req:
                 auth_token = main_input.first_req.split(self._auth_header_key)[1].split('\n', 1)[0]
                 self._attacker_auth_header_values[main_input.target_url] = auth_token
+
+        print(f'[{datetime.now().strftime("%H:%M:%S")}]: Atacker added')
 
         if self._victim_list:
             self.__run_attack()
@@ -101,7 +107,7 @@ class AuthChecker:
 
 
 
-    def __find_auth_cookie_param(self, main_input, cookies_check_set):
+    def find_auth_cookie_param(self, main_input, cookies_check_set):
         cookie_split = main_input.first_req.split(self._cookie_header_key)
         if len(cookie_split) == 2:
             raw_cookies = str(cookie_split[1].split('\n')[0]).strip()
@@ -151,7 +157,7 @@ class AuthChecker:
         checked_cookies = ''
         for curr_input in victim_main_inputs:
             if not auth_cookie_param:
-                auth_cookie_param, cookies_set = self.__find_auth_cookie_param(curr_input, checked_cookies)
+                auth_cookie_param, cookies_set = self.find_auth_cookie_param(curr_input, checked_cookies)
                 if not auth_cookie_param:
                     checked_cookies = cookies_set
                     continue

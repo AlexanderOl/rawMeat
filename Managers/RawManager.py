@@ -35,12 +35,12 @@ class RawManager:
     def __process_file_request(self, file_request):
         main_input = self.__get_main_input(file_request)
         if main_input:
-            # route_checker = RouteChecker(main_input)
-            # route_checker.run()
-            # param_checker = ParamChecker(main_input)
-            # param_checker.run()
-            # body_checker = BodyChecker(main_input)
-            # body_checker.run()
+            route_checker = RouteChecker(main_input)
+            route_checker.run()
+            param_checker = ParamChecker(main_input)
+            param_checker.run()
+            body_checker = BodyChecker(main_input)
+            body_checker.run()
             header_checker = HeaderChecker(main_input)
             header_checker.run()
 
@@ -48,8 +48,8 @@ class RawManager:
             if re.search(r"c\w*\.txt", file_request):
                 cookie_checker.run()
 
-            # if not route_checker.is_found and not body_checker.is_found and not cookie_checker.is_found:
-            #     os.remove(f'{self._output_dir}/{main_input.output_filename}')
+            if not route_checker.is_found and not body_checker.is_found and not cookie_checker.is_found:
+                os.remove(f'{self._output_dir}/{main_input.output_filename}')
 
         os.remove(file_request)
         print(f'{file_request} file processed')

@@ -234,13 +234,17 @@ class BaseChecker:
                     if time_based_found2:
                         time_based_found3 = self.__send_time_based_request(true_request, with_delay=True)
                         if time_based_found3:
+                            time_based_found4 = self.__send_time_based_request(false_request, with_delay=False)
+                            if time_based_found4:
+                                time_based_found5 = self.__send_time_based_request(true_request, with_delay=True)
+                                if time_based_found5:
 
-                            msg = f"Delay FOUND! TRUE:{true_request[0:100]}; " \
-                                  f"FALSE:{false_request[0:100]}"
-                            print(msg)
-                            self.save_found(msg,
-                                            [time_based_payloads['True'], time_based_payloads['False']],
-                                            self._outputTimeBasedDir)
+                                    msg = f"Delay FOUND! TRUE:{true_request[0:100]}; " \
+                                          f"FALSE:{false_request[0:100]}"
+                                    print(msg)
+                                    self.save_found(msg,
+                                                    [true_request, false_request],
+                                                    self._outputTimeBasedDir)
 
         except Exception as inst:
             print(f'Time based exception: {inst}')
@@ -251,7 +255,7 @@ class BaseChecker:
                                          data=true_request,
                                          verify=False,
                                          allow_redirects=False,
-                                         timeout=10)
+                                         timeout=6)
             if response is not None and with_delay and response.elapsed.total_seconds() >= self._delay_in_seconds:
                 return True
             if response is not None and not with_delay and response.elapsed.total_seconds() < self._delay_in_seconds:

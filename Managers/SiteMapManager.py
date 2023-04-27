@@ -206,7 +206,7 @@ class SiteMapManager:
             http_verb = str(first_request.decode()).split(' ', 1)[0]
 
             if not disable_dupl_check:
-                is_added = self.__check_if_added(target_url, path, http_verb, )
+                is_added = self.__check_if_added(target_url, path, http_verb)
                 if is_added:
                     return None, None
 
