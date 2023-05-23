@@ -1,8 +1,9 @@
 import base64
 import shutil
+import requests_raw
+import distutils.util
 
 from urllib3 import disable_warnings, exceptions
-import distutils.util
 from glob import glob
 import os
 import pickle
@@ -11,9 +12,6 @@ import uuid
 import xml.etree.ElementTree as ET
 from typing import List
 from urllib.parse import urlparse
-
-import requests_raw
-
 from Managers.AuthChecker import AuthChecker
 from Managers.BodyChecker import BodyChecker
 from Managers.HeaderChecker import HeaderChecker
@@ -67,15 +65,8 @@ class SiteMapManager:
 
         self.__write_inputs_to_go(main_inputs)
 
-        if os.path.basename(file_request).startswith('a'):
-            self._auth_man.run(file_request, main_inputs)
-            key = f'temp_{str(uuid.uuid4())}'
-            dst = f'{self._sitemap_dir}/{key}'
-            shutil.copyfile(file_request, dst)
-            self._cached_inputs[key] = main_inputs
-        else:
-            thread_man = ThreadManager()
-            thread_man.run_all(self.__run_batch, main_inputs)
+        thread_man = ThreadManager()
+        thread_man.run_all(self.__run_batch, main_inputs)
 
         os.remove(file_request)
         os.remove(self._inputs_to_go_filepath)
@@ -92,7 +83,6 @@ class SiteMapManager:
 
         self.__get_target_domain_urls()
 
-
         tree = ET.parse(file_request)
         root = tree.getroot()
         for item in root.findall('item'):
@@ -108,7 +98,8 @@ class SiteMapManager:
             output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
 
             try:
-                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5, verify=False)
+                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5,
+                                                  verify=False)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
                 print(f'Exception ({inst}) on url: {target_url}')
@@ -226,4 +217,3 @@ class SiteMapManager:
         body_checker.run()
         header_checker = HeaderChecker(main_input)
         header_checker.run()
-

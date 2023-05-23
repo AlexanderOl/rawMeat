@@ -5,6 +5,7 @@ import shutil
 import uuid
 import requests_raw
 
+from Managers.AuthChecker import AuthChecker
 from Managers.BodyChecker import BodyChecker
 from Managers.CookieChecker import CookieChecker
 from Managers.HeaderChecker import HeaderChecker
@@ -43,6 +44,10 @@ class RawManager:
             body_checker.run()
             header_checker = HeaderChecker(main_input)
             header_checker.run()
+
+            if re.search(r"a\w*\.txt", file_request):
+                auth = AuthChecker()
+                auth.find_auth_cookie_param(main_input)
 
             cookie_checker = CookieChecker(main_input)
             if re.search(r"c\w*\.txt", file_request):
