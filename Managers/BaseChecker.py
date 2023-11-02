@@ -57,7 +57,7 @@ class BaseChecker:
                 web_page = response.text.lower()
                 self.injection_keyword_checks(web_page, response, request)
                 if response.status_code == 500:
-                    log_header_msg = f'500 Status: {response.status_code} - {web_page[0:100]}'
+                    log_header_msg = f'{response.status_code} Status: - {web_page[0:100]}'
                     print(log_header_msg)
                     # self.save_found(log_header_msg, [request], self._outputInjectionsDir)
             except:

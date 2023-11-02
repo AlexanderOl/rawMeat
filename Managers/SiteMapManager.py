@@ -12,7 +12,6 @@ import uuid
 import xml.etree.ElementTree as ET
 from typing import List
 from urllib.parse import urlparse
-from Managers.AuthChecker import AuthChecker
 from Managers.BodyChecker import BodyChecker
 from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
@@ -35,7 +34,6 @@ class SiteMapManager:
         self._target_domain_urls = set()
         self._already_added_urls = {}
         self._chunk_size = 10
-        self._auth_man = AuthChecker()
         self._cached_inputs = {}
         disable_warnings(exceptions.InsecureRequestWarning)
 
@@ -134,7 +132,7 @@ class SiteMapManager:
             else:
                 self._already_added_urls[target_url].add(key_to_check)
         else:
-            self._already_added_urls[target_url] = set([key_to_check])
+            self._already_added_urls[target_url] = {key_to_check}
 
         return is_already_added
 

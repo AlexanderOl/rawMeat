@@ -5,7 +5,6 @@ import shutil
 import uuid
 import requests_raw
 
-from Managers.AuthChecker import AuthChecker
 from Managers.BodyChecker import BodyChecker
 from Managers.CookieChecker import CookieChecker
 from Managers.HeaderChecker import HeaderChecker
@@ -45,10 +44,6 @@ class RawManager:
             header_checker = HeaderChecker(main_input)
             header_checker.run()
 
-            if re.search(r"a\w*\.txt", file_request):
-                auth = AuthChecker()
-                auth.find_auth_cookie_param(main_input)
-
             cookie_checker = CookieChecker(main_input)
             if re.search(r"c\w*\.txt", file_request):
                 cookie_checker.run()
@@ -64,7 +59,7 @@ class RawManager:
         if not os.path.exists(self._output_dir):
             os.mkdir(self._output_dir)
 
-        text_file = open(file_request, "r")
+        text_file = open(file_request, "r", encoding="utf8")
         request = f'{text_file.read()}\r\n'
         host = request.split('\nHost: ')[1].split('\n')[0]
 
@@ -76,7 +71,7 @@ class RawManager:
             first_request = request.encode()
         else:
             target_url = f'https://{host}/'
-            first_request = request.replace('HTTP/2', 'HTTP/1.1').encode()
+            first_request = request.encode()
         text_file.close()
 
         try:
