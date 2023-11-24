@@ -16,9 +16,10 @@ class HeaderChecker(BaseChecker):
         self.__check_location_header()
         self.__check_xml_content_type()
 
-        injection_payloads, time_based_payloads = self.__get_headers_payloads()
+        injection_payloads, time_based_payloads, bool_based_payloads = self.__get_headers_payloads()
         super().check_injections(injection_payloads)
         super().check_time_based_injections(time_based_payloads)
+        super().check_bool_based_injections(bool_based_payloads)
 
     def __check_xml_content_type(self):
         for keyword in ['Content-Type: application/xml',
@@ -51,6 +52,7 @@ class HeaderChecker(BaseChecker):
 
         injection_payloads = []
         time_based_payloads = []
+        bool_based_payloads = []
 
         if new_headers:
             for key in new_headers:
@@ -62,11 +64,27 @@ class HeaderChecker(BaseChecker):
 
                 for payload in self._time_based_payloads:
                     old = f'{key}:{new_headers[key]}'
-                    true = f'{key}:{new_headers[key]}{payload["True"]}'
-                    false = f'{key}:{new_headers[key]}{payload["False"]}'
+                    true = f'{key}:{new_headers[key]}{payload["TruePld"]}'
+                    false = f'{key}:{new_headers[key]}{payload["FalsePld"]}'
+                    true2 = f'{key}:{new_headers[key]}{payload["True2Pld"]}'
                     new_true_request = self._main_input.first_req.replace(old, true)
                     new_false_request = self._main_input.first_req.replace(old, false)
-                    time_based_payloads.append({'True': new_true_request, 'False': new_false_request})
+                    new_true2_request = self._main_input.first_req.replace(old, true2)
+                    time_based_payloads.append({'TruePld': new_true_request,
+                                                'FalsePld': new_false_request,
+                                                'True2Pld': new_true2_request})
 
-        return injection_payloads, time_based_payloads
+                for payload in self._bool_based_payloads:
+                    old = f'{key}:{new_headers[key]}'
+                    true = f'{key}:{new_headers[key]}{payload["TruePld"]}'
+                    false = f'{key}:{new_headers[key]}{payload["FalsePld"]}'
+                    true2 = f'{key}:{new_headers[key]}{payload["True2Pld"]}'
+                    new_true_request = self._main_input.first_req.replace(old, true)
+                    new_false_request = self._main_input.first_req.replace(old, false)
+                    new_true2_request = self._main_input.first_req.replace(old, true2)
+                    bool_based_payloads.append({'TruePld': new_true_request,
+                                                'FalsePld': new_false_request,
+                                                'True2Pld': new_true2_request})
+
+        return injection_payloads, time_based_payloads, bool_based_payloads
 

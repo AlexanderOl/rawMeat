@@ -18,6 +18,9 @@ class ParamChecker(BaseChecker):
         time_based_payloads = self.__get_time_based_param_payloads()
         super().check_time_based_injections(time_based_payloads)
 
+        bool_based_payloads = self.__get_bool_based_param_payloads()
+        super().check_bool_based_injections(bool_based_payloads)
+
         idor_payloads = self.__get_idor_param_payloads()
         super().check_idor(idor_payloads)
 
@@ -47,6 +50,36 @@ class ParamChecker(BaseChecker):
 
         return result
 
+
+    def __get_bool_based_param_payloads(self) -> [{}]:
+        result = []
+        request_parts = self._main_input.first_req.split(' ')
+        route = request_parts[1]
+        parsed = urlparse(route)
+        params = filter(None, parsed.query.split("&"))
+
+        for param in params:
+            for payload in self._bool_based_payloads:
+                main_url_split = route.split(param)
+                param_split = param.split('=')
+                if len(param_split) == 2:
+                    true_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["TruePld"]}{main_url_split[1]}'
+                    false_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["FalsePld"]}{main_url_split[1]}'
+                    true2_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload["True2Pld"]}{main_url_split[1]}'
+                    payloads = {'True': true_payload, 'False': false_payload, 'True2': true2_payload}
+                else:
+                    true_payload = f'{main_url_split[0]}{param_split[0]}{payload["TruePld"]}{main_url_split[1]}'
+                    false_payload = f'{main_url_split[0]}{param_split[0]}{payload["FalsePld"]}{main_url_split[1]}'
+                    true2_payload = f'{main_url_split[0]}{param_split[0]}{payload["True2Pld"]}{main_url_split[1]}'
+                    payloads = {'True': true_payload, 'False': false_payload, 'True2': true2_payload}
+                copy = deepcopy(request_parts)
+                copy2 = deepcopy(request_parts)
+                request_parts[1] = payloads['True']
+                copy[1] = payloads['False']
+                copy2[1] = payloads['True2']
+                result.append({'TruePld': ' '.join(request_parts), 'FalsePld': ' '.join(copy), 'True2Pld': ' '.join(copy2)})
+
+        return result
     def __get_time_based_param_payloads(self) -> [{}]:
         result = []
         request_parts = self._main_input.first_req.split(' ')
