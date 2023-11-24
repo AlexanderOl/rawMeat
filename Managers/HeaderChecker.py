@@ -64,15 +64,12 @@ class HeaderChecker(BaseChecker):
 
                 for payload in self._time_based_payloads:
                     old = f'{key}:{new_headers[key]}'
-                    true = f'{key}:{new_headers[key]}{payload["TruePld"]}'
-                    false = f'{key}:{new_headers[key]}{payload["FalsePld"]}'
-                    true2 = f'{key}:{new_headers[key]}{payload["True2Pld"]}'
+                    true = f'{key}:{new_headers[key]}{payload["True"]}'
+                    false = f'{key}:{new_headers[key]}{payload["False"]}'
                     new_true_request = self._main_input.first_req.replace(old, true)
                     new_false_request = self._main_input.first_req.replace(old, false)
-                    new_true2_request = self._main_input.first_req.replace(old, true2)
-                    time_based_payloads.append({'TruePld': new_true_request,
-                                                'FalsePld': new_false_request,
-                                                'True2Pld': new_true2_request})
+                    time_based_payloads.append({'True': new_true_request,
+                                                'False': new_false_request})
 
                 for payload in self._bool_based_payloads:
                     old = f'{key}:{new_headers[key]}'
