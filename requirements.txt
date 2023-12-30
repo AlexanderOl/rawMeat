@@ -1,6 +1,6 @@
 load_dotenv
 requests_raw
-regex~=2023.3.23
-requests~=2.28.2
+regex
+requests
 python-dotenv~=1.0.0
 urllib3~=1.26.15

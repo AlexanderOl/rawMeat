@@ -1,7 +1,5 @@
 import base64
-import shutil
 import requests_raw
-import distutils.util
 
 from urllib3 import disable_warnings, exceptions
 from glob import glob
@@ -26,7 +24,7 @@ class SiteMapManager:
         self._ngrok_url = os.environ.get('ngrok_url')
         self._output_dir = os.environ.get('output_dir')
         self._out_of_scope_keys = os.environ.get('out_of_scope_keys').split(';')
-        self._urls_txt_filter_enabled = distutils.util.strtobool(os.environ.get('urls_txt_filter_enabled'))
+        self._urls_txt_filter_enabled = False
         self._request_verbs_blacklist = ['OPTIONS', 'HEAD']
         self._target_urls_filepath = 'Targets/urls.txt'
         self._history_filepath = 'Output/history.txt'

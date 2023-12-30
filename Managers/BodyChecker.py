@@ -49,19 +49,22 @@ class BodyChecker(BaseChecker):
             return
         curr_depth += 1
 
-        replaced_str = possible_json \
-            .replace('\'', '"') \
-            .replace('\\"', '"') \
-            .replace('"{', '{') \
-            .replace('}"', '}') \
-            .replace('False', 'false') \
-            .replace('True', 'true')
 
         try:
-            replaced_str = re.sub(r'\bNone\b', 'null', replaced_str)
+            replaced_str = re.sub(r'\bNone\b', 'null', possible_json)
             parsed_json = json.loads(replaced_str)
         except ValueError as e:
-            return
+            try:
+                replaced_str = replaced_str \
+                    .replace('\'', '"') \
+                    .replace('\\"', '"') \
+                    .replace('"{', '{') \
+                    .replace('}"', '}') \
+                    .replace('False', 'false') \
+                    .replace('True', 'true')
+                parsed_json = json.loads(replaced_str)
+            except ValueError as e:
+                return
 
         for key in parsed_json:
             node_value = parsed_json[key]
@@ -123,6 +126,9 @@ class BodyChecker(BaseChecker):
                         self.__add_exploit(possible_json, str_json, self._inject_result)
             else:
                 for inner_possible_json in inner_found_jsons:
+                    inner_possible_json = inner_possible_json.replace("'", '"') \
+                        .replace('"{', '{') \
+                        .replace('}"', '}')
                     self.__create_recursive_json_payloads(inner_possible_json, curr_depth)
 
     def __add_exploit(self, old_json, new_json, result_list: []):
@@ -133,19 +139,22 @@ class BodyChecker(BaseChecker):
         else:
             old = re.sub(r'\bNone\b', 'null', old_json)
             old = old \
-                .replace('\'', '"') \
-                .replace(', ', ',') \
                 .replace(': ', ':') \
+                .replace(', \'', ',\'') \
+                .replace(', "', ',"') \
                 .replace('False', 'false') \
                 .replace('True', 'true') \
-                .replace(':"{', ':"{')
+                .replace(': "{', ':"{') \
+                .replace(': \'{', ':\'{')
+
             if old in self._main_input.first_req:
                 new = new_json \
-                    .replace('\'', '"') \
-                    .replace(', ', ',') \
-                    .replace(': ', ':') \
+                    .replace(': \'', ':\'') \
+                    .replace(': "', ':"') \
                     .replace('False', 'false') \
-                    .replace('True', 'true')
+                    .replace('True', 'true') \
+                    .replace(': "{', ':"{') \
+                    .replace(': \'{', ':\'{')
                 exploit = self._main_input.first_req.replace(old, new)
             elif old in self._main_input.first_req.replace('\\"', '"') \
                     .replace(':"{', ':{') \
@@ -159,21 +168,34 @@ class BodyChecker(BaseChecker):
             else:
                 first_10_chars_to_replace = self._main_input.first_req.find(new_json[:10])
                 last_10_chars_to_replace = self._main_input.first_req.find(new_json[-10:])
-                if first_10_chars_to_replace < last_10_chars_to_replace:
-                    exploit = old.join([self._main_input.first_req[:first_10_chars_to_replace],
-                                        self._main_input.first_req[last_10_chars_to_replace + 10:]])
+                if first_10_chars_to_replace != -1 and first_10_chars_to_replace < last_10_chars_to_replace:
+                    exploit = new_json.join([self._main_input.first_req[:first_10_chars_to_replace],
+                                             self._main_input.first_req[last_10_chars_to_replace + 10:]])
                 elif ' [' in new_json:
                     new_json = new_json.replace(' [', '[')
                     first_10_chars_to_replace = self._main_input.first_req.find(new_json[:10])
                     last_10_chars_to_replace = self._main_input.first_req.find(new_json[-10:])
                     if first_10_chars_to_replace < last_10_chars_to_replace:
-                        exploit = old.join([self._main_input.first_req[:first_10_chars_to_replace],
-                                            self._main_input.first_req[last_10_chars_to_replace + 10:]])
+                        exploit = new_json.join([self._main_input.first_req[:first_10_chars_to_replace],
+                                                 self._main_input.first_req[last_10_chars_to_replace + 10:]])
                     else:
                         print(f'Need attention1 - {new_json}')
                 else:
-                    print(f'Need attention2 - {new_json}')
-
+                    new_json_replace = new_json.replace(': \'', ':\'') \
+                                         .replace(': "', ':"') \
+                                         .replace(': "{', ':"{') \
+                                         .replace(': \'{', ':\'{')
+                    first_10_chars_to_replace = self._main_input.first_req.find(new_json_replace[:10])
+                    last_10_of_20_chars_to_replace = self._main_input.first_req.find(str(new_json_replace[-20:])[:10])
+                    last_10_chars_to_replace = self._main_input.first_req.find(new_json_replace[-10:])
+                    if first_10_chars_to_replace < last_10_chars_to_replace:
+                        exploit = new_json_replace.join([self._main_input.first_req[:first_10_chars_to_replace],
+                                                         self._main_input.first_req[last_10_chars_to_replace + 10:]])
+                    elif first_10_chars_to_replace < last_10_of_20_chars_to_replace:
+                        exploit = new_json_replace.join([self._main_input.first_req[:first_10_chars_to_replace],
+                                                         self._main_input.first_req[last_10_of_20_chars_to_replace + 15:]])
+                    else:
+                        print(f'Need attention2 - {new_json}')
         if exploit:
             result_list.append(exploit)
         else:
