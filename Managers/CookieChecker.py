@@ -13,18 +13,23 @@ class CookieChecker(BaseChecker):
         super(CookieChecker, self).__init__(main_input)
 
     def run(self):
-        injection_exploits, idor_results, ssti_results, ssrf_results = self.get_injection_payloads()
+        injection_exploits, idor_results, ssti_results, ssrf_results, bool_based_result, time_based_result \
+            = self.get_injection_payloads()
 
         self.check_injections(injection_exploits)
         super().check_idor(idor_results)
         self.check_ssti(ssti_results)
         self.check_ssrf(ssrf_results)
+        self.check_bool_based_injections(bool_based_result)
+        self.check_time_based_injections(time_based_result)
 
     def get_injection_payloads(self) -> []:
         injection_results = []
         idor_results: List[Idor] = []
         ssti_results = []
         ssrf_results = []
+        bool_based_result = []
+        time_based_result = []
         cookie_split = self._main_input.first_req.split('Cookie: ')
 
         if len(cookie_split) == 2:
@@ -41,10 +46,29 @@ class CookieChecker(BaseChecker):
                     payload_str = f'{item}={payload}'
                     res = self._main_input.first_req.replace(original_str, payload_str)
                     injection_results.append(res)
+
+                for payload in self._bool_based_payloads:
+                    original_str = f'{item}={cookies[item]}'
+                    true_payload = f'{item}={payload["TruePld"]}'
+                    true_res = self._main_input.first_req.replace(original_str, true_payload)
+                    false_payload = f'{item}={payload["FalsePld"]}'
+                    false_res = self._main_input.first_req.replace(original_str, false_payload)
+                    true2_payload = f'{item}={payload["True2Pld"]}'
+                    true2_res = self._main_input.first_req.replace(original_str, true2_payload)
+                    bool_based_result.append(
+                        {'TruePld': true_res, 'FalsePld': false_res, 'True2Pld': true2_res})
+
+                for payload in self._time_based_payloads:
+                    original_str = f'{item}={cookies[item]}'
+                    true_payload = f'{item}={payload["True"]}'
+                    true_res = self._main_input.first_req.replace(original_str, true_payload)
+                    false_payload = f'{item}={payload["False"]}'
+                    false_res = self._main_input.first_req.replace(original_str, false_payload)
+                    time_based_result.append({'True': true_res, 'False': false_res})
+
                 if str(cookies[item]).startswith('http') or str(cookies[item]).startswith('/'):
                     ssrf_payload = \
-                        quote(f'{self._main_input.ngrok_url}/cookie_{cookies[item]}',
-                                           safe='')
+                        quote(f'{self._main_input.ngrok_url}/cookie_{cookies[item]}', safe='')
                     original_str = f'{item}={cookies[item]}'
                     payload_str = f'{item}={ssrf_payload}'
                     res = self._main_input.first_req.replace(original_str, payload_str)
@@ -63,5 +87,4 @@ class CookieChecker(BaseChecker):
                     ssti_res2 = self._main_input.first_req.replace(original_str, ssti_str2)
                     ssti_results.append([ssti_res1, ssti_res2])
 
-        return injection_results, idor_results, ssti_results, ssrf_results
-
+        return injection_results, idor_results, ssti_results, ssrf_results, bool_based_result, time_based_result

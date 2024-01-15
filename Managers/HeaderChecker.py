@@ -9,8 +9,10 @@ from Models.MainInput import MainInput
 class HeaderChecker(BaseChecker):
     def __init__(self, main_input: MainInput):
         super(HeaderChecker, self).__init__(main_input)
-        self._known_headers = ['Host', 'Cookie', 'Accept', 'Accept-Language', 'Accept-Encoding', 'Content-Type',
-                                   'Sec-Fetch-Dest', 'Sec-Fetch-Mode', 'Sec-Fetch-Site', 'Te']
+        self._known_headers = ['Host', 'Cookie', 'Accept',
+                               'Accept-Language', 'Accept-Encoding',
+                               'Content-Type', 'Sec-Fetch-Dest',
+                               'Sec-Fetch-Mode', 'Sec-Fetch-Site', 'Te']
 
     def run(self):
         self.__check_location_header()
@@ -33,19 +35,19 @@ class HeaderChecker(BaseChecker):
                 break
 
     def __check_location_header(self):
-        splitted_body_req = self._main_input.first_req.split('\n\n', 1)
+        split_body_req = self._main_input.first_req.split('\n\n', 1)
 
         body = ''
-        if len(splitted_body_req) > 1:
-            body = splitted_body_req[1]
-        payload = f'{splitted_body_req[0]}\nLocation: {self._main_input.ngrok_url}\n\n{body}'
+        if len(split_body_req) > 1:
+            body = split_body_req[1]
+        payload = f'{split_body_req[0]}\nLocation: {self._main_input.ngrok_url}\n\n{body}'
 
         super().check_ssrf([payload])
 
     def __get_headers_payloads(self) -> []:
-        splitted_body_req = self._main_input.first_req.split('\n\n', 1)
+        split_body_req = self._main_input.first_req.split('\n\n', 1)
         headers_dict = {pair[0]: pair[1] for pair in
-                        [item.split(':', 1) for item in splitted_body_req[0].split('\n')[1:] if ':' in item]}
+                        [item.split(':', 1) for item in split_body_req[0].split('\n')[1:] if ':' in item]}
 
         new_headers = {header: headers_dict[header] for header in
                        [key for key in headers_dict if key not in self._known_headers]}

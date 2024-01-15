@@ -50,7 +50,6 @@ class ParamChecker(BaseChecker):
 
         return result
 
-
     def __get_bool_based_param_payloads(self) -> [{}]:
         result = []
         request_parts = self._main_input.first_req.split(' ')
@@ -80,6 +79,7 @@ class ParamChecker(BaseChecker):
                 result.append({'TruePld': ' '.join(request_parts), 'FalsePld': ' '.join(copy), 'True2Pld': ' '.join(copy2)})
 
         return result
+
     def __get_time_based_param_payloads(self) -> [{}]:
         result = []
         request_parts = self._main_input.first_req.split(' ')

@@ -18,6 +18,8 @@ class BodyChecker(BaseChecker):
         self._max_depth = 3
         self._json_pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
         self._inject_result = []
+        self._time_based_result = []
+        self._bool_based_result = []
         self._idor_result: List[Idor] = []
         self._ssti_result = []
         self._ssrf_result = []
@@ -36,19 +38,23 @@ class BodyChecker(BaseChecker):
             self.__create_body_payloads()
 
         self.__create_xxe_payloads()
+        self.__create_multipart_payloads()
 
         self.check_injections(self._inject_result)
-        self.check_idor(self._idor_result)
-        self.check_ssti(self._ssti_result)
-        self.check_ssrf(self._ssrf_result)
-        self.check_xxe(self._xxe_result)
+
+        super().check_time_based_injections(self._time_based_result)
+        super().check_bool_based_injections(self._bool_based_result)
+
+        super().check_idor(self._idor_result)
+        super().check_ssti(self._ssti_result)
+        super().check_ssrf(self._ssrf_result)
+        super().check_xxe(self._xxe_result)
 
     def __create_recursive_json_payloads(self, possible_json: str, curr_depth: int):
 
         if curr_depth >= self._max_depth:
             return
         curr_depth += 1
-
 
         try:
             replaced_str = re.sub(r'\bNone\b', 'null', possible_json)
@@ -107,23 +113,22 @@ class BodyChecker(BaseChecker):
                     if len(ssti_twins) == 2:
                         self._ssti_result.append(ssti_twins)
 
-                else:
-                    for payload in self._injection_payloads:
-                        copy = deepcopy(parsed_json)
+                for payload in self._injection_payloads:
+                    copy = deepcopy(parsed_json)
 
-                        if isinstance(copy[key], list):
-                            if len(copy[key]) == 0:
-                                copy[key].append(payload)
-                            else:
-                                copy[key][len(copy[key]) - 1] = f'{copy[key][len(copy[key]) - 1]}{payload}'
+                    if isinstance(copy[key], list):
+                        if len(copy[key]) == 0:
+                            copy[key].append(payload)
                         else:
-                            if type(node_value) == bool or node_value is None or str(node_value).isdigit():
-                                copy[key] = payload
-                            else:
-                                copy[key] = f'{copy[key]}{payload}'
+                            copy[key][len(copy[key]) - 1] = f'{copy[key][len(copy[key]) - 1]}{payload}'
+                    else:
+                        if type(node_value) == bool or node_value is None or str(node_value).isdigit():
+                            copy[key] = payload
+                        else:
+                            copy[key] = f'{copy[key]}{payload}'
 
-                        str_json = json.dumps(copy)
-                        self.__add_exploit(possible_json, str_json, self._inject_result)
+                    str_json = json.dumps(copy)
+                    self.__add_exploit(possible_json, str_json, self._inject_result)
             else:
                 for inner_possible_json in inner_found_jsons:
                     inner_possible_json = inner_possible_json.replace("'", '"') \
@@ -202,34 +207,80 @@ class BodyChecker(BaseChecker):
             print(f'CANT REPLACE - {new_json}')
 
     def __create_body_payloads(self):
-        splitted_req = self._main_input.first_req.split('\n\n')
-        if len(splitted_req) == 2:
-            body_params = splitted_req[1].strip('\r\n')
-            params = filter(None, body_params.split("&"))
-            for param in params:
-                param_split = param.split('=')
-                main_url_split = body_params.split(param)
-                if str(param_split[1]).isdigit():
-                    first_idor_payload = str(int(param_split[1]) - 1)
-                    second_idor_payload = str(int(param_split[1]) + 1)
-                    self._idor_result.append(Idor([
-                        f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
-                        f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
-                        param_split[0]))
+        if '\n\n' not in self._main_input.first_req:
+            return
+        split_req = self._main_input.first_req.split('\n\n')
+        body_params = split_req[1].strip('\r\n')
+        params = filter(None, body_params.split("&"))
+        for param in params:
+            param_split = param.split('=')
+            main_url_split = body_params.split(param)
+            if str(param_split[1]).isdigit():
+                first_idor_payload = str(int(param_split[1]) - 1)
+                second_idor_payload = str(int(param_split[1]) + 1)
+                self._idor_result.append(Idor([
+                    f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
+                    f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
+                    param_split[0]))
 
-                    first_ssti_payload = str(int(param_split[1]) + 1)
-                    second_ssti_payload = f'{param_split[1]}+1'
-                    self._ssti_result.append([
-                        f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
-                        f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
+                first_ssti_payload = str(int(param_split[1]) + 1)
+                second_ssti_payload = f'{param_split[1]}+1'
+                self._ssti_result.append([
+                    f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
+                    f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
+
+            for payload in self._injection_payloads:
+                if len(param_split) == 2:
+                    param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
                 else:
-                    for payload in self._injection_payloads:
-                        if len(param_split) == 2:
-                            param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
-                        else:
-                            param_payload = f'{main_url_split[0]}{param_split[0]}{payload}{main_url_split[1]}'
-                        splitted_req[1] = f'{param_payload}\r\n'
-                        self._inject_result.append('\n\n'.join(splitted_req))
+                    param_payload = f'{main_url_split[0]}{param_split[0]}{payload}{main_url_split[1]}'
+                split_req[1] = f'{param_payload}\r\n'
+                self._inject_result.append('\n\n'.join(split_req))
+
+    def __create_multipart_payloads(self):
+        if ('Content-Type: multipart/form-data' not in self._main_input.first_req
+                or '-----------------------------' not in self._main_input.first_req):
+            return
+        split_req = self._main_input.first_req.split('-----------------------------')
+
+        for n in range(len(split_req) - 2):
+            if n == 0:
+                continue
+
+            for payload in self._time_based_payloads:
+                true_payload = f'{split_req[n].rstrip("\n")}{payload["True"]}'
+                false_payload = f'{split_req[n].rstrip("\n")}{payload["False"]}'
+                self._time_based_result.append({'True': true_payload, 'False': false_payload})
+
+            for payload in self._bool_based_payloads:
+                true_payload = f'{split_req[n].rstrip("\n")}{payload["TruePld"]}'
+                false_payload = f'{split_req[n].rstrip("\n")}{payload["FalsePld"]}'
+                true2_payload = f'{split_req[n].rstrip("\n")}{payload["True2Pld"]}'
+                self._bool_based_result.append(
+                    {'TruePld': true_payload, 'FalsePld': false_payload, 'True2Pld': true2_payload})
+
+            for payload in self._injection_payloads:
+                param_payload = f'{split_req[n].rstrip("\n")}{payload}'
+                self._inject_result.append(self._main_input.first_req.replace(split_req[n], param_payload))
+
+        body_params = split_req[1].strip('\r\n')
+        params = filter(None, body_params.split("&"))
+        for param in params:
+            param_split = param.split('=')
+            main_url_split = body_params.split(param)
+            if str(param_split[1]).isdigit():
+                first_ssti_payload = str(int(param_split[1]) + 1)
+                second_ssti_payload = f'{param_split[1]}+1'
+                self._ssti_result.append([
+                    f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
+                    f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
+            for payload in self._injection_payloads:
+                if len(param_split) == 2:
+                    param_payload = f'{main_url_split[0]}{param_split[0]}={param_split[1]}{payload}{main_url_split[1]}'
+                else:
+                    param_payload = f'{main_url_split[0]}{param_split[0]}{payload}{main_url_split[1]}'
+                split_req[1] = f'{param_payload}\r\n'
+                self._inject_result.append('\n\n'.join(split_req))
 
     def __create_xxe_payloads(self):
         splitted_verb_req = self._main_input.first_req.split(' ', 1)
