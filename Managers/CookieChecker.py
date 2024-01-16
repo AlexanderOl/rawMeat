@@ -1,4 +1,3 @@
-
 from urllib.parse import quote
 from http.cookies import SimpleCookie
 from typing import List
@@ -9,10 +8,16 @@ from Models.MainInput import MainInput
 
 
 class CookieChecker(BaseChecker):
-    def __int__(self, main_input: MainInput):
+    def __init__(self, main_input: MainInput):
         super(CookieChecker, self).__init__(main_input)
+        self._checked_hosts = set()
 
     def run(self):
+
+        checked_host = self._check_header_host()
+        if not checked_host:
+            print(f'Host: {checked_host} is already checked')
+            return
         injection_exploits, idor_results, ssti_results, ssrf_results, bool_based_result, time_based_result \
             = self.get_injection_payloads()
 
@@ -22,6 +27,17 @@ class CookieChecker(BaseChecker):
         self.check_ssrf(ssrf_results)
         self.check_bool_based_injections(bool_based_result)
         self.check_time_based_injections(time_based_result)
+
+    def _check_header_host(self):
+        split_body_req = self._main_input.first_req.split('\n\n', 1)
+        headers_dict = {pair[0]: pair[1] for pair in
+                        [item.split(':', 1) for item in split_body_req[0].split('\n')[1:] if ':' in item]}
+        host = headers_dict['Host']
+        if host in self._checked_hosts:
+            return
+
+        self._checked_hosts.add(host)
+        return True
 
     def get_injection_payloads(self) -> []:
         injection_results = []

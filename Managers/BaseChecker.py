@@ -12,7 +12,8 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._bool_diff_rate = 0.1
-        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'', '{{888*888}}',
+        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'',
+                                    '{{888*888}}',
                                     '"%2bstr(888*888)%2b"']
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},

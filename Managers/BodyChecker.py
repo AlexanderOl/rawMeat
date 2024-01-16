@@ -248,16 +248,21 @@ class BodyChecker(BaseChecker):
                 continue
 
             for payload in self._time_based_payloads:
-                true_payload = f'{split_req[n].rstrip("\n")}{payload["True"]}'
-                false_payload = f'{split_req[n].rstrip("\n")}{payload["False"]}'
-                self._time_based_result.append({'True': true_payload, 'False': false_payload})
+                true_payload = f'{split_req[n].rstrip("\n")}{payload["True"]}\n'
+                false_payload = f'{split_req[n].rstrip("\n")}{payload["False"]}\n'
+                true_res = self._main_input.first_req.replace(split_req[n], true_payload)
+                false_res = self._main_input.first_req.replace(split_req[n], false_payload)
+                self._time_based_result.append({'True': true_res, 'False': false_res})
 
             for payload in self._bool_based_payloads:
-                true_payload = f'{split_req[n].rstrip("\n")}{payload["TruePld"]}'
-                false_payload = f'{split_req[n].rstrip("\n")}{payload["FalsePld"]}'
-                true2_payload = f'{split_req[n].rstrip("\n")}{payload["True2Pld"]}'
+                true_payload = f'{split_req[n].rstrip("\n")}{payload["TruePld"]}\n'
+                false_payload = f'{split_req[n].rstrip("\n")}{payload["FalsePld"]}\n'
+                true2_payload = f'{split_req[n].rstrip("\n")}{payload["True2Pld"]}\n'
+                true_res = self._main_input.first_req.replace(split_req[n], true_payload)
+                false_res = self._main_input.first_req.replace(split_req[n], false_payload)
+                true2_res = self._main_input.first_req.replace(split_req[n], true2_payload)
                 self._bool_based_result.append(
-                    {'TruePld': true_payload, 'FalsePld': false_payload, 'True2Pld': true2_payload})
+                    {'TruePld': true_res, 'FalsePld': false_res, 'True2Pld': true2_res})
 
             for payload in self._injection_payloads:
                 param_payload = f'{split_req[n].rstrip("\n")}{payload}'
