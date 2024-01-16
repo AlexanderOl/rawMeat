@@ -28,7 +28,6 @@ class BaseChecker:
         ]
         self._false_positives = ['malformed request syntax',
                                  'use esm export syntax, instead:',
-                                 '"xpath":["\/html\/head\/title"',
                                  'invalid parameter value for aura.format',
                                  'known to have no newer js syntax',
                                  'to enable the details of this specific',

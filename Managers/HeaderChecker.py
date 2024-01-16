@@ -1,7 +1,3 @@
-
-from urllib.parse import urlparse
-from copy import deepcopy
-
 from Managers.BaseChecker import BaseChecker
 from Models.MainInput import MainInput
 
@@ -86,4 +82,3 @@ class HeaderChecker(BaseChecker):
                                                 'True2Pld': new_true2_request})
 
         return injection_payloads, time_based_payloads, bool_based_payloads
-
