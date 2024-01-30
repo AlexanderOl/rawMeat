@@ -215,7 +215,7 @@ class BodyChecker(BaseChecker):
         for param in params:
             param_split = param.split('=')
             main_url_split = body_params.split(param)
-            if str(param_split[1]).isdigit():
+            if '=' in param and str(param_split[1]).isdigit():
                 first_idor_payload = str(int(param_split[1]) - 1)
                 second_idor_payload = str(int(param_split[1]) + 1)
                 self._idor_result.append(Idor([

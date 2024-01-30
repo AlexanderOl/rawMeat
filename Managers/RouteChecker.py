@@ -13,13 +13,13 @@ class RouteChecker(BaseChecker):
 
     def run(self):
         injection_exploits = self.get_injection_payloads()
-        self.check_injections(injection_exploits)
+        super().check_injections(injection_exploits)
 
         idor_payloads = self.get_idor_payloads()
         super().check_idor(idor_payloads)
 
         ssti_exploits = self.get_ssti_payloads()
-        self.check_ssti(ssti_exploits)
+        super().check_ssti(ssti_exploits)
 
     def get_idor_payloads(self) -> List[Idor]:
         request_parts = self._main_input.first_req.split(' ')

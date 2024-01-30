@@ -13,8 +13,7 @@ class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._bool_diff_rate = 0.1
         self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'',
-                                    '{{888*888}}',
-                                    '"%2bstr(888*888)%2b"']
+                                    '{{888*888}}', '"%2bstr(888*888)%2b"']
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},
             {'True': '"OR(if(1=1,sleep(5),0))OR"', 'False': '"OR(if(1=2,sleep(5),0))OR"'},
@@ -36,6 +35,7 @@ class BaseChecker:
                                  'symantecinternalerror',
                                  'a potentially dangerous request',
                                  '<customErrors mode="Off"/>']
+
         self._injections_to_check = ['syntax', '<poc>', '""poc\'\'', 'xpath', 'internalerror', 'warning: ',
                                      'server error in', 'Use of undefined constant', '788544']
         self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
@@ -91,15 +91,15 @@ class BaseChecker:
                 except:
                     break
 
-            if len(check_results) == len(idor_requests):
-                responses_length = [len(response.text) for response in check_results]
-                responses_length.append(len(self._main_input.first_resp.text))
-                if len(responses_length) == len(set(responses_length)):
-                    log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
-                                     f'REQUEST: {request[0:100]}; ' \
-                                     f'FILE: {self._main_input.output_filename}'
-                    print(log_header_msg)
-                    self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
+                if len(check_results) == len(idor_requests):
+                    responses_length = [len(response.text) for response in check_results]
+                    responses_length.append(len(self._main_input.first_resp.text))
+                    if len(responses_length) == len(set(responses_length)):
+                        log_header_msg = f'FOUND IDOR in param:{idor_payload.param}; ' \
+                                         f'REQUEST: {request[0:100]}; ' \
+                                         f'FILE: {self._main_input.output_filename}'
+                        print(log_header_msg)
+                        self.save_found(log_header_msg, idor_requests, self._outputIdorDir)
 
     def check_ssti(self, ssti_payloads: []):
         for ssti_requests in ssti_payloads:
