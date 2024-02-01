@@ -72,7 +72,7 @@ class BaseChecker:
                 break
 
     def check_idor(self, idor_payloads: List[Idor]):
-        # return
+
         for idor_payload in idor_payloads:
             check_results = []
             idor_requests = idor_payload.requests
@@ -169,7 +169,7 @@ class BaseChecker:
                     print(log_header_msg)
                     self.save_found(log_header_msg, [request], self._outputInjectionsDir)
 
-                self.xxe_keyword_checks(web_page, response, request)
+                self.__xxe_keyword_checks(web_page, response, request)
 
             except:
                 continue
@@ -215,7 +215,7 @@ class BaseChecker:
                 print(log_header_msg)
                 self.save_found(log_header_msg, [request], self._outputInjectionsDir)
 
-    def xxe_keyword_checks(self, web_page: str, response, request):
+    def __xxe_keyword_checks(self, web_page: str, response, request):
         for keyword in self._xxe_to_check:
             if keyword in web_page and keyword not in self._main_input.first_resp.text.lower() \
                     and not any(word in web_page for word in self._false_positives):

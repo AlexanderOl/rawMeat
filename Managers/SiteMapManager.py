@@ -71,9 +71,7 @@ class SiteMapManager:
         print(f'{file_request} file processed')
 
     def __get_main_inputs(self, file_request) -> List[MainInput]:
-
         result: List[MainInput] = []
-
         if not os.path.exists(self._output_dir):
             os.mkdir(self._output_dir)
 

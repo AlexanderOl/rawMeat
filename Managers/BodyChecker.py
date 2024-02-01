@@ -40,7 +40,7 @@ class BodyChecker(BaseChecker):
         self.__create_xxe_payloads()
         self.__create_multipart_payloads()
 
-        self.check_injections(self._inject_result)
+        super().check_injections(self._inject_result)
 
         super().check_time_based_injections(self._time_based_result)
         super().check_bool_based_injections(self._bool_based_result)

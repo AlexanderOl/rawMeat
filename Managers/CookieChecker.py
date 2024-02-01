@@ -21,12 +21,12 @@ class CookieChecker(BaseChecker):
         injection_exploits, idor_results, ssti_results, ssrf_results, bool_based_result, time_based_result \
             = self.get_injection_payloads()
 
-        self.check_injections(injection_exploits)
+        super().check_injections(injection_exploits)
         super().check_idor(idor_results)
-        self.check_ssti(ssti_results)
-        self.check_ssrf(ssrf_results)
-        self.check_bool_based_injections(bool_based_result)
-        self.check_time_based_injections(time_based_result)
+        super().check_ssti(ssti_results)
+        super().check_ssrf(ssrf_results)
+        super().check_bool_based_injections(bool_based_result)
+        super().check_time_based_injections(time_based_result)
 
     def _check_header_host(self):
         split_body_req = self._main_input.first_req.split('\n\n', 1)
