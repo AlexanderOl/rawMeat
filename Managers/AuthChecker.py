@@ -1,11 +1,5 @@
-import os
-import re
-from datetime import datetime
-from http.cookies import SimpleCookie
-
-import requests_raw
 from typing import List
-from Managers.BaseChecker import BaseChecker
+import requests
 from Models.MainInput import MainInput
 
 
@@ -28,12 +22,12 @@ class AuthChecker:
             cookies_k_v = raw_cookies.split('; ')
             cookies_set = set()
             for k_v in cookies_k_v:
-                splitted = k_v.split('=')
-                if len(splitted) == 2:
-                    cookies[splitted[0]] = splitted[1]
+                split = k_v.split('=')
+                if len(split) == 2:
+                    cookies[split[0]] = split[1]
                 else:
-                    cookies[splitted[0]] = ''
-                cookies_check_set.add(splitted[0])
+                    cookies[split[0]] = ''
+                cookies_check_set.add(split[0])
 
             if cookies_set == cookies_check_set:
                 return None, raw_cookies
@@ -46,8 +40,10 @@ class AuthChecker:
             init_status_code = main_input.first_resp.status_code
             for cookie_param in cookie_requests:
                 try:
-                    raw_request = f'{cookie_requests[cookie_param]}'.encode()
-                    response = requests_raw.raw(url=main_input.target_url,
+                    raw_request = f'{cookie_requests[cookie_param]}'
+                    method_type = raw_request.split(' ', 1)[0]
+                    response = requests.request(method=method_type,
+                                                url=main_input.target_url,
                                                 data=raw_request,
                                                 verify=False,
                                                 allow_redirects=False,

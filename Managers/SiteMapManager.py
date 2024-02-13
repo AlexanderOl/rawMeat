@@ -1,6 +1,6 @@
 import base64
-import requests_raw
 
+import requests
 from urllib3 import disable_warnings, exceptions
 from glob import glob
 import os
@@ -91,8 +91,12 @@ class SiteMapManager:
             host = item.find('host').text
             output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
 
+            method_type = first_request.split(' ', 1)[0]
             try:
-                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5,
+                first_response = requests.request(method=method_type,
+                                                  url=target_url,
+                                                  data=first_request,
+                                                  timeout=5,
                                                   verify=False)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
@@ -183,11 +187,11 @@ class SiteMapManager:
         if port not in [80, 443]:
             port_part = f':{port}'
 
-        target_url = f'{protocol}://{host}{port_part}/'
+        path = item.find('path').text
+        target_url = f'{protocol}://{host}{port_part}{path}'
+
         try:
             first_request = base64.b64decode(item.find('request').text)
-            path = item.find('path').text
-
             http_verb = str(first_request.decode()).split(' ', 1)[0]
 
             if not disable_dupl_check:

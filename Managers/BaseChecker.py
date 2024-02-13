@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-import requests_raw
+import requests
 from requests import RequestException
 from urllib3.exceptions import ReadTimeoutError
 
@@ -53,22 +53,21 @@ class BaseChecker:
 
     def check_injections(self, injection_payloads: []):
 
-        for index, request in enumerate(injection_payloads):
-            request = f'{request}'.encode()
+        for request in injection_payloads:
+            method_type = request.split(' ', 1)[0]
             try:
-                response = requests_raw.raw(url=self._main_input.target_url,
-                                            data=request,
+                response = requests.request(method=method_type,
+                                            url=self._main_input.target_url,
                                             verify=False,
-                                            allow_redirects=False,
-                                            timeout=5)
+                                            timeout=5,
+                                            data=request)
 
                 web_page = response.text.lower()
                 self.injection_keyword_checks(web_page, response, request)
                 if response.status_code == 500:
                     log_header_msg = f'{response.status_code} Status: - {web_page[0:100]}'
                     print(log_header_msg)
-                    # self.save_found(log_header_msg, [request], self._outputInjectionsDir)
-            except:
+            except Exception as inst:
                 break
 
     def check_idor(self, idor_payloads: List[Idor]):
@@ -77,17 +76,19 @@ class BaseChecker:
             check_results = []
             idor_requests = idor_payload.requests
             for request in idor_requests:
+                method_type = request.split(' ', 1)[0]
                 try:
-                    response = requests_raw.raw(
-                        url=self._main_input.target_url,
-                        data=request.encode(),
-                        verify=False,
-                        allow_redirects=False,
-                        timeout=5)
+                    response = requests.request(method=method_type,
+                                                url=self._main_input.target_url,
+                                                data=request,
+                                                verify=False,
+                                                allow_redirects=False,
+                                                timeout=5)
                     if response.status_code != self._main_input.first_resp.status_code:
                         check_results = []
                         break
                     check_results.append(response)
+
                 except:
                     break
 
@@ -105,9 +106,11 @@ class BaseChecker:
         for ssti_requests in ssti_payloads:
             check_results = []
             for request in ssti_requests:
+                method_type = request.split(' ', 1)[0]
                 try:
-                    response = requests_raw.raw(url=self._main_input.target_url,
-                                                data=request.encode(),
+                    response = requests.request(method=method_type,
+                                                url=self._main_input.target_url,
+                                                data=request,
                                                 verify=False,
                                                 allow_redirects=False,
                                                 timeout=5)
@@ -115,6 +118,7 @@ class BaseChecker:
                         check_results = []
                         break
                     check_results.append(response)
+
                 except:
                     break
 
@@ -129,9 +133,11 @@ class BaseChecker:
 
     def check_ssrf(self, ssrf_payloads: []):
         for request in ssrf_payloads:
-            request = f'{request}'.encode()
+            request = f'{request}'
+            method_type = request.split(' ', 1)[0]
             try:
-                response = requests_raw.raw(url=self._main_input.target_url,
+                response = requests.request(method=method_type,
+                                            url=self._main_input.target_url,
                                             data=request,
                                             verify=False,
                                             allow_redirects=False,
@@ -150,9 +156,10 @@ class BaseChecker:
 
     def check_xxe(self, xxe_payloads: []):
         for request in xxe_payloads:
-            request = f'{request}'.encode()
+            method_type = request.split(' ', 1)[0]
             try:
-                response = requests_raw.raw(url=self._main_input.target_url,
+                response = requests.request(method=method_type,
+                                            url=self._main_input.target_url,
                                             data=request,
                                             verify=False,
                                             allow_redirects=False,
@@ -233,15 +240,17 @@ class BaseChecker:
     def check_bool_based_injections(self, bool_based_payloads):
         try:
             for bool_based_payload in bool_based_payloads:
-                true_request = f'{bool_based_payload["TruePld"]}'.encode()
-                false_request = f'{bool_based_payload["FalsePld"]}'.encode()
-                true2_request = f'{bool_based_payload["True2Pld"]}'.encode()
+                true_request = f'{bool_based_payload["TruePld"]}'
+                false_request = f'{bool_based_payload["FalsePld"]}'
+                true2_request = f'{bool_based_payload["True2Pld"]}'
+                method_type = true_request.split(' ', 1)[0]
 
-                true_response = requests_raw.raw(url=self._main_input.target_url,
-                                            data=true_request,
-                                            verify=False,
-                                            allow_redirects=False,
-                                            timeout=6)
+                true_response = requests.request(method=method_type,
+                                                 url=self._main_input.target_url,
+                                                 data=true_request,
+                                                 verify=False,
+                                                 allow_redirects=False,
+                                                 timeout=6)
                 if not true_response:
                     return
                 true_status = true_response.status_code
@@ -252,39 +261,42 @@ class BaseChecker:
                 if true_length == 0:
                     true_length = 1
 
-                false_response = requests_raw.raw(url=self._main_input.target_url,
-                                            data=false_request,
-                                            verify=False,
-                                            allow_redirects=False,
-                                            timeout=6)
+                false_response = requests.request(method=method_type,
+                                                  url=self._main_input.target_url,
+                                                  data=false_request,
+                                                  verify=False,
+                                                  allow_redirects=False,
+                                                  timeout=6)
                 false_status = false_response.status_code
                 false_length = len(false_response.text)
                 if false_length == 0:
                     false_length = 1
 
                 if abs(true_length - false_length) / true_length > self._bool_diff_rate:
-                    true2_response = requests_raw.raw(url=self._main_input.target_url,
-                                            data=true2_request,
-                                            verify=False,
-                                            allow_redirects=False,
-                                            timeout=6)
+                    true2_response = requests.request(method=method_type,
+                                                      url=self._main_input.target_url,
+                                                      data=true2_request,
+                                                      verify=False,
+                                                      allow_redirects=False,
+                                                      timeout=6)
                     true2_length = len(true2_response.text)
                     if true2_length == 0:
                         true2_length = 1
 
                     if abs(true_length - true2_length) / true_length < self._bool_diff_rate or true_length == true2_length:
-                        msg = f"Bool sqli size FOUND! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
+                        msg = f"FOUND Bool SQLi size ! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
                         print(msg)
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
                 elif true_status != false_status:
-                    true2_response = requests_raw.raw(url=self._main_input.target_url,
+                    true2_response = requests.request(method=method_type,
+                                                      url=self._main_input.target_url,
                                                       data=true2_request,
                                                       verify=False,
                                                       allow_redirects=False,
                                                       timeout=6)
                     true2_status = true2_response.status_code
                     if true_status == true2_status:
-                        msg = f"Bool sqli status FOUND! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
+                        msg = f"FOUND Bool SQLi status ! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
                         print(msg)
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
 
@@ -294,8 +306,8 @@ class BaseChecker:
     def check_time_based_injections(self, time_based_payloads):
         try:
             for time_based_payload in time_based_payloads:
-                true_request = f'{time_based_payload["True"]}'.encode()
-                false_request = f'{time_based_payload["False"]}'.encode()
+                true_request = f'{time_based_payload["True"]}'
+                false_request = f'{time_based_payload["False"]}'
 
                 time_based_found1 = self.__send_time_based_request(true_request, with_delay=True)
                 if time_based_found1:
@@ -318,8 +330,10 @@ class BaseChecker:
             print(f'Time based exception: {inst}')
 
     def __send_time_based_request(self, request, with_delay):
+        method_type = request.split(' ', 1)[0]
         try:
-            response = requests_raw.raw(url=self._main_input.target_url,
+            response = requests.request(method=method_type,
+                                        url=self._main_input.target_url,
                                         data=request,
                                         verify=False,
                                         allow_redirects=False,

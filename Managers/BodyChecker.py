@@ -41,10 +41,8 @@ class BodyChecker(BaseChecker):
         self.__create_multipart_payloads()
 
         super().check_injections(self._inject_result)
-
         super().check_time_based_injections(self._time_based_result)
         super().check_bool_based_injections(self._bool_based_result)
-
         super().check_idor(self._idor_result)
         super().check_ssti(self._ssti_result)
         super().check_ssrf(self._ssrf_result)
@@ -288,12 +286,12 @@ class BodyChecker(BaseChecker):
                 self._inject_result.append('\n\n'.join(split_req))
 
     def __create_xxe_payloads(self):
-        splitted_verb_req = self._main_input.first_req.split(' ', 1)
+        split_verb_req = self._main_input.first_req.split(' ', 1)
 
-        if splitted_verb_req[0] == 'GET':
-            splitted_verb_req[0] = 'POST'
+        if split_verb_req[0] == 'GET':
+            split_verb_req[0] = 'POST'
 
-        splitted_body_req = splitted_verb_req[1].split('\n\n', 1)
+        split_body_req = split_verb_req[1].split('\n\n', 1)
 
         self._xxe_result.append(
-            f'{splitted_verb_req[0]} {splitted_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')
+            f'{split_verb_req[0]} {split_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')

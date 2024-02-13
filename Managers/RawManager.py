@@ -3,7 +3,7 @@ import os
 import re
 import shutil
 import uuid
-import requests_raw
+import requests
 
 from Managers.BodyChecker import BodyChecker
 from Managers.CookieChecker import CookieChecker
@@ -62,21 +62,21 @@ class RawManager:
         text_file = open(file_request, "r", encoding="utf8")
         request = f'{text_file.read()}\r\n'
         host = request.split('\nHost: ')[1].split('\n')[0]
+        path = request.split(' ', 2)[1]
 
         output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
         shutil.copyfile(file_request, f'{self._output_dir}/{output_filename}')
+        target_url = f'https://{host}{path}'
 
-        if 'HTTP/1.1' in request:
-            target_url = f'https://{host}/'
-            first_request = request.encode()
-        else:
-            target_url = f'https://{host}/'
-            first_request = request.encode()
-        text_file.close()
-
+        method_type = request.split(' ', 1)[0]
         try:
-            first_response = requests_raw.raw(url=target_url, data=first_request, verify=False, timeout=15)
-            return MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url)
+            first_response = requests.request(method=method_type,
+                                              url=target_url,
+                                              verify=False,
+                                              timeout=15,
+                                              data=request)
+
+            return MainInput(target_url, request, first_response, output_filename, self._ngrok_url)
 
         except Exception as inst:
             print(f'Url ({target_url}) - Exception: {inst}')
