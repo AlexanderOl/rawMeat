@@ -5,7 +5,7 @@ from Models.MainInput import MainInput
 class HeaderChecker(BaseChecker):
     def __init__(self, main_input: MainInput):
         super(HeaderChecker, self).__init__(main_input)
-        self._known_headers = ['Host', 'Cookie', 'Accept',
+        self._known_headers = ['Host', 'Cookie', 'Accept', 'Content-Length',
                                'Accept-Language', 'Accept-Encoding',
                                'Content-Type', 'Sec-Fetch-Dest',
                                'Sec-Fetch-Mode', 'Sec-Fetch-Site', 'Te']

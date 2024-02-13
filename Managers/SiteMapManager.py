@@ -1,7 +1,4 @@
 import base64
-import requests_raw
-
-from urllib3 import disable_warnings, exceptions
 from glob import glob
 import os
 import pickle
@@ -13,6 +10,7 @@ from urllib.parse import urlparse
 from Managers.BodyChecker import BodyChecker
 from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
+from Managers.RequestHelper import RequestHelper
 from Managers.RouteChecker import RouteChecker
 from Managers.ThreadManager import ThreadManager
 from Models.MainInput import MainInput
@@ -33,7 +31,6 @@ class SiteMapManager:
         self._already_added_urls = {}
         self._chunk_size = 10
         self._cached_inputs = {}
-        disable_warnings(exceptions.InsecureRequestWarning)
 
     def run(self):
         if not os.path.exists(self._sitemap_dir):
@@ -92,8 +89,8 @@ class SiteMapManager:
             output_filename = f'{host}_{str(uuid.uuid4())[:8]}.txt'
 
             try:
-                first_response = requests_raw.raw(url=target_url, data=first_request, allow_redirects=False, timeout=5,
-                                                  verify=False)
+                req_helper = RequestHelper(target_url)
+                first_response = req_helper.request_raw(first_request)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
                 print(f'Exception ({inst}) on url: {target_url}')
@@ -185,10 +182,10 @@ class SiteMapManager:
 
         target_url = f'{protocol}://{host}{port_part}/'
         try:
-            first_request = base64.b64decode(item.find('request').text)
+            first_request = base64.b64decode(item.find('request').text).decode()
             path = item.find('path').text
 
-            http_verb = str(first_request.decode()).split(' ', 1)[0]
+            http_verb = first_request.split(' ', 1)[0]
 
             if not disable_dupl_check:
                 is_added = self.__check_if_added(target_url, path, http_verb)

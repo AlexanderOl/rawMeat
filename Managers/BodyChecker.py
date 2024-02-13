@@ -1,9 +1,7 @@
 import json
 from urllib.parse import quote
 import re
-
 from typing import List
-
 import regex
 from copy import deepcopy
 
@@ -219,15 +217,15 @@ class BodyChecker(BaseChecker):
                 first_idor_payload = str(int(param_split[1]) - 1)
                 second_idor_payload = str(int(param_split[1]) + 1)
                 self._idor_result.append(Idor([
-                    f'{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
-                    f'{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
+                    f'{split_req[0]}\n\n{main_url_split[0]}{param_split[0]}={first_idor_payload}{main_url_split[1]}',
+                    f'{split_req[0]}\n\n{main_url_split[0]}{param_split[0]}={second_idor_payload}{main_url_split[1]}'],
                     param_split[0]))
 
                 first_ssti_payload = str(int(param_split[1]) + 1)
                 second_ssti_payload = f'{param_split[1]}+1'
                 self._ssti_result.append([
-                    f'{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
-                    f'{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
+                    f'{split_req[0]}\n\n{main_url_split[0]}{param_split[0]}={first_ssti_payload}{main_url_split[1]}',
+                    f'{split_req[0]}\n\n{main_url_split[0]}{param_split[0]}={second_ssti_payload}{main_url_split[1]}'])
 
             for payload in self._injection_payloads:
                 if len(param_split) == 2:
@@ -288,12 +286,12 @@ class BodyChecker(BaseChecker):
                 self._inject_result.append('\n\n'.join(split_req))
 
     def __create_xxe_payloads(self):
-        splitted_verb_req = self._main_input.first_req.split(' ', 1)
+        split_verb_req = self._main_input.first_req.split(' ', 1)
 
-        if splitted_verb_req[0] == 'GET':
-            splitted_verb_req[0] = 'POST'
+        if split_verb_req[0] == 'GET':
+            split_verb_req[0] = 'POST'
 
-        splitted_body_req = splitted_verb_req[1].split('\n\n', 1)
+        split_body_req = split_verb_req[1].split('\n\n', 1)
 
         self._xxe_result.append(
-            f'{splitted_verb_req[0]} {splitted_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')
+            f'{split_verb_req[0]} {split_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')

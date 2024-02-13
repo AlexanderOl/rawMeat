@@ -3,12 +3,12 @@ import os
 import re
 import shutil
 import uuid
-import requests_raw
 
 from Managers.BodyChecker import BodyChecker
 from Managers.CookieChecker import CookieChecker
 from Managers.HeaderChecker import HeaderChecker
 from Managers.ParamChecker import ParamChecker
+from Managers.RequestHelper import RequestHelper
 from Managers.RouteChecker import RouteChecker
 from Models.MainInput import MainInput
 
@@ -68,15 +68,14 @@ class RawManager:
 
         if 'HTTP/1.1' in request:
             target_url = f'https://{host}/'
-            first_request = request.encode()
         else:
             target_url = f'https://{host}/'
-            first_request = request.encode()
         text_file.close()
 
         try:
-            first_response = requests_raw.raw(url=target_url, data=first_request, verify=False, timeout=15)
-            return MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url)
+            req_helper = RequestHelper(target_url)
+            first_response = req_helper.request_raw(request)
+            return MainInput(target_url, request, first_response, output_filename, self._ngrok_url)
 
         except Exception as inst:
             print(f'Url ({target_url}) - Exception: {inst}')
