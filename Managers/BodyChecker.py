@@ -163,9 +163,9 @@ class BodyChecker(BaseChecker):
                     .replace(':"{', ':{') \
                     .replace(' [', '[') \
                     .replace('}",', '},'):
-                exploit = self._main_input.first_req.replace('\\"', '"')\
-                    .replace(':"{', ':{')\
-                    .replace('}",', '},')\
+                exploit = self._main_input.first_req.replace('\\"', '"') \
+                    .replace(':"{', ':{') \
+                    .replace('}",', '},') \
                     .replace(' [', '[')
                 exploit.replace(old, new_json)
             else:
@@ -185,9 +185,9 @@ class BodyChecker(BaseChecker):
                         print(f'Need attention1 - {new_json}')
                 else:
                     new_json_replace = new_json.replace(': \'', ':\'') \
-                                         .replace(': "', ':"') \
-                                         .replace(': "{', ':"{') \
-                                         .replace(': \'{', ':\'{')
+                        .replace(': "', ':"') \
+                        .replace(': "{', ':"{') \
+                        .replace(': \'{', ':\'{')
                     first_10_chars_to_replace = self._main_input.first_req.find(new_json_replace[:10])
                     last_10_of_20_chars_to_replace = self._main_input.first_req.find(str(new_json_replace[-20:])[:10])
                     last_10_chars_to_replace = self._main_input.first_req.find(new_json_replace[-10:])
@@ -196,7 +196,8 @@ class BodyChecker(BaseChecker):
                                                          self._main_input.first_req[last_10_chars_to_replace + 10:]])
                     elif first_10_chars_to_replace < last_10_of_20_chars_to_replace:
                         exploit = new_json_replace.join([self._main_input.first_req[:first_10_chars_to_replace],
-                                                         self._main_input.first_req[last_10_of_20_chars_to_replace + 15:]])
+                                                         self._main_input.first_req[
+                                                         last_10_of_20_chars_to_replace + 15:]])
                     else:
                         print(f'Need attention2 - {new_json}')
         if exploit:
@@ -293,5 +294,12 @@ class BodyChecker(BaseChecker):
 
         split_body_req = split_verb_req[1].split('\n\n', 1)
 
-        self._xxe_result.append(
-            f'{split_verb_req[0]} {split_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')
+        if 'Content-Type:' in split_body_req[0]:
+            split = split_body_req[0].split('Content-Type:', 1)
+            second_part = split[1].split('\n', 1)
+            xxe_payload = f'{split_verb_req[0]} {split[0]}Content-Type: application/xml\n{second_part[1]}\n\n{self._xxe_payload}'
+            self._xxe_result.append(xxe_payload)
+
+        else:
+            self._xxe_result.append(
+                f'{split_verb_req[0]} {split_body_req[0]}\nContent-Type: application/xml\n\n{self._xxe_payload}')
