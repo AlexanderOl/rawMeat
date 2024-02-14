@@ -11,7 +11,7 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._bool_diff_rate = 0.1
-        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '%22', '%5C', '\'',
+        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '"', '%5C', '\'',
                                     '{{888*888}}', '@(888*888)']
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},
@@ -126,7 +126,7 @@ class BaseChecker:
                     self.save_found(log_header_msg, [request], self._outputSsrfDir)
 
             except Exception as inst:
-                print(inst)
+                print(f'check_ssrf: {inst}')
                 break
 
     def check_xxe(self, xxe_payloads: []):
@@ -249,7 +249,7 @@ class BaseChecker:
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
 
         except Exception as inst:
-            print(f'Time based exception: {inst}')
+            print(f'check_bool_based_injections: {inst}')
 
     def check_time_based_injections(self, time_based_payloads):
         try:
@@ -275,7 +275,7 @@ class BaseChecker:
                                                     self._outputTimeBasedDir)
 
         except Exception as inst:
-            print(f'Time based exception: {inst}')
+            print(f'check_time_based_injections: {inst}')
 
     def __send_time_based_request(self, request, with_delay):
         try:

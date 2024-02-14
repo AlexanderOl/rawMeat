@@ -78,8 +78,7 @@ class SiteMapManager:
         root = tree.getroot()
         for item in root.findall('item'):
             check_is_disabled = re.search(r"a\w*", file_request)
-            target_url, first_request = self.__prepare_first_request(item,
-                                                                     disable_dupl_check=check_is_disabled)
+            target_url, first_request = self.__prepare_first_request(item, disable_dupl_check=check_is_disabled)
 
             mime_type = item.find('mimetype').text
             if not target_url or not first_request or mime_type == 'script':
@@ -182,7 +181,7 @@ class SiteMapManager:
 
         target_url = f'{protocol}://{host}{port_part}/'
         try:
-            first_request = base64.b64decode(item.find('request').text).decode()
+            first_request = base64.b64decode(item.find('request').text).decode('utf-8')
             path = item.find('path').text
 
             http_verb = first_request.split(' ', 1)[0]

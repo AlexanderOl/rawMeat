@@ -56,7 +56,7 @@ class HeaderChecker(BaseChecker):
             for key in new_headers:
                 for payload in self._injection_payloads:
                     old = f'{key}:{new_headers[key]}'
-                    new = f'{key}:{new_headers[key]}{payload}'
+                    new = f'{key}:{new_headers[key].strip('\r')}{payload}\r'
                     new_request = self._main_input.first_req.replace(old, new)
                     injection_payloads.append(new_request)
 
