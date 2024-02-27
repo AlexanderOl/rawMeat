@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List
 from requests import RequestException
 from urllib3.exceptions import ReadTimeoutError
@@ -35,7 +36,7 @@ class BaseChecker:
                                  'a potentially dangerous request',
                                  '<customErrors mode="Off"/>']
 
-        self._injections_to_check = ['syntax', '<poc>', '""poc\'\'', 'xpath', 'internalerror', 'warning: ',
+        self._injections_to_check = ['syntax', '<poc>', '""poc\'\'', 'xpath', 'internalerror',
                                      'server error in', 'Use of undefined constant', '788544']
         self._xxe_to_check = ['root:', 'XXE found!', 'exception', '<foo>', 'Use of undefined constant']
         self._outputIdorDir = 'Output/Idor'
@@ -75,7 +76,6 @@ class BaseChecker:
                 try:
                     response = self._req_helper.request_raw(request)
                     if response.status_code != self._main_input.first_resp.status_code:
-                        check_results = []
                         break
                     check_results.append(response)
                 except:
@@ -126,7 +126,8 @@ class BaseChecker:
                     self.save_found(log_header_msg, [request], self._outputSsrfDir)
 
             except Exception as inst:
-                print(f'check_ssrf: {inst}')
+                exc_info = sys.exc_info()
+                print(f'check_ssrf: {inst}, trace: {exc_info}')
                 break
 
     def check_xxe(self, xxe_payloads: []):
@@ -236,7 +237,8 @@ class BaseChecker:
                     if true2_length == 0:
                         true2_length = 1
 
-                    if abs(true_length - true2_length) / true_length < self._bool_diff_rate or true_length == true2_length:
+                    if (abs(true_length - true2_length) / true_length < self._bool_diff_rate
+                            or true_length == true2_length):
                         msg = f"Bool sqli size FOUND! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
                         print(msg)
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
@@ -249,7 +251,8 @@ class BaseChecker:
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
 
         except Exception as inst:
-            print(f'check_bool_based_injections: {inst}')
+            exc_info = sys.exc_info()
+            print(f'check_bool_based_injections: {inst}; trace: {exc_info}')
 
     def check_time_based_injections(self, time_based_payloads):
         try:
@@ -275,14 +278,15 @@ class BaseChecker:
                                                     self._outputTimeBasedDir)
 
         except Exception as inst:
-            print(f'check_time_based_injections: {inst}')
+            exc_info = sys.exc_info()
+            print(f'check_time_based_injections: {inst}, trace: {exc_info}')
 
     def __send_time_based_request(self, request, with_delay):
         try:
             response = self._req_helper.request_raw(request)
-            if response is not None and with_delay and response.elapsed.total_seconds() >= self._delay_in_seconds:
+            if response is not None and response.elapsed.total_seconds() >= self._delay_in_seconds and with_delay:
                 return True
-            if response is not None and not with_delay and response.elapsed.total_seconds() < self._delay_in_seconds:
+            if response is not None and response.elapsed.total_seconds() < self._delay_in_seconds and not with_delay:
                 return True
             return False
         except (RequestException, ReadTimeoutError):

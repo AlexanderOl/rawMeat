@@ -1,4 +1,5 @@
 import base64
+import sys
 from glob import glob
 import os
 import pickle
@@ -92,7 +93,8 @@ class SiteMapManager:
                 first_response = req_helper.request_raw(first_request)
                 result.append(MainInput(target_url, first_request, first_response, output_filename, self._ngrok_url))
             except Exception as inst:
-                print(f'Exception ({inst}) on url: {target_url}')
+                exc_info = sys.exc_info()
+                print(f'Url ({target_url}) - Exception: {inst}, trace: {exc_info}')
                 continue
 
         print(f'Found {len(result)} requests')
@@ -194,7 +196,8 @@ class SiteMapManager:
             if http_verb in self._request_verbs_blacklist:
                 return None, None
         except Exception as inst:
-            print(f'Unable to perform first request on {target_url}; Exception: {inst}')
+            exc_info = sys.exc_info()
+            print(f'Unable to perform first request on {target_url}; Exception: {inst}, trace: {exc_info}')
             return None, None
         return target_url, first_request
 

@@ -2,6 +2,7 @@ import glob
 import os
 import re
 import shutil
+import sys
 import uuid
 
 from Managers.BodyChecker import BodyChecker
@@ -78,5 +79,6 @@ class RawManager:
             return MainInput(target_url, request, first_response, output_filename, self._ngrok_url)
 
         except Exception as inst:
-            print(f'Url ({target_url}) - Exception: {inst}')
+            exc_info = sys.exc_info()
+            print(f'Url ({target_url}) - Exception: {inst}, trace: {exc_info}')
             os.remove(f'{self._output_dir}/{output_filename}')

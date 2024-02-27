@@ -1,3 +1,4 @@
+import sys
 from typing import List
 from Managers.RequestHelper import RequestHelper
 from Models.MainInput import MainInput
@@ -43,7 +44,8 @@ class AuthChecker:
                 try:
                     response = req_helper.request_raw(cookie_requests[cookie_param])
                 except Exception as inst:
-                    print(f'Exception ({inst}) on url: {main_input.target_url}')
+                    exc_info = sys.exc_info()
+                    print(f'Exception ({inst}) on url: {main_input.target_url}, trace: {exc_info}')
                     continue
 
                 if response.status_code != init_status_code and response.status_code != self._avoid_status_code:
