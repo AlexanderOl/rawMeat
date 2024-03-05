@@ -118,7 +118,7 @@ class BaseChecker:
             try:
                 response = self._req_helper.request_raw(request)
 
-                if str(response.status_code).startswith('3') \
+                if response and str(response.status_code).startswith('3') \
                         and 'Location' in response.headers \
                         and response.headers['Location'].startswith(self._main_input.ngrok_url):
                     log_header_msg = f'FOUND REDIRECT! FILE: {self._main_input.output_filename}'
