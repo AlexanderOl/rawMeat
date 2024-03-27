@@ -26,7 +26,7 @@ class RequestHelper:
 
         body_data = None
         if len(body_split) == 0:
-            return
+            body_split.append(raw_request)
         elif len(body_split) == 2:
             body_data = body_split[1].encode()
 
@@ -49,7 +49,6 @@ class RequestHelper:
                                     allow_redirects=False)
 
             if resp.status_code == 400:
-                print(f'400 ERROR! {resp.text}')
                 if not os.path.exists(self._err_directory):
                     os.makedirs(self._err_directory)
                 filename = f'{self._err_directory}/{str(uuid.uuid4())[:8]}.txt'
