@@ -43,6 +43,7 @@ class BaseChecker:
         self._outputSstiDir = 'Output/Ssti'
         self._outputSsrfDir = 'Output/Ssrf'
         self._outputInjectionsDir = 'Output/Injections'
+        self._output500Dir = 'Output/500'
         self._outputXxeDir = 'Output/Xxe'
         self._outputTimeBasedDir = 'Output/TimeBased'
         self._outputBoolBasedDir = 'Output/BoolBased'
@@ -63,7 +64,7 @@ class BaseChecker:
                 if response.status_code == 500:
                     log_header_msg = f'{response.status_code} Status: - {web_page[0:100]}'
                     print(log_header_msg)
-                    # self.save_found(log_header_msg, [request], self._outputInjectionsDir)
+                    self.save_found(log_header_msg, [request], self._output500Dir)
             except:
                 break
 
@@ -144,7 +145,7 @@ class BaseChecker:
                                      f'MIME-TYPE: {response.headers["Content-Type"]};' \
                                      f'FILE: {self._main_input.output_filename}'
                     print(log_header_msg)
-                    self.save_found(log_header_msg, [request], self._outputInjectionsDir)
+                    self.save_found(log_header_msg, [request], self._output500Dir)
 
                 self.__xxe_keyword_checks(web_page, response, request)
 
