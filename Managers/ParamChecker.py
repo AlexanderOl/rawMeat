@@ -21,14 +21,15 @@ class ParamChecker(BaseChecker):
         bool_based_payloads = self.__get_bool_based_param_payloads()
         super().check_bool_based_injections(bool_based_payloads)
 
-        idor_payloads = self.__get_idor_param_payloads()
-        super().check_idor(idor_payloads)
-
         ssti_exploits = self.__get_ssti_param_payloads()
         super().check_ssti(ssti_exploits)
 
-        ssrf_exploits = self.get_ssrf_param_payloads()
-        super().check_ssrf(ssrf_exploits)
+        if self.severity == 1:
+            idor_payloads = self.__get_idor_param_payloads()
+            super().check_idor(idor_payloads)
+
+            ssrf_exploits = self.get_ssrf_param_payloads()
+            super().check_ssrf(ssrf_exploits)
 
     def __get_injection_param_payloads(self) -> []:
         result = []
@@ -76,7 +77,8 @@ class ParamChecker(BaseChecker):
                 request_parts[1] = payloads['True']
                 copy[1] = payloads['False']
                 copy2[1] = payloads['True2']
-                result.append({'TruePld': ' '.join(request_parts), 'FalsePld': ' '.join(copy), 'True2Pld': ' '.join(copy2)})
+                result.append(
+                    {'TruePld': ' '.join(request_parts), 'FalsePld': ' '.join(copy), 'True2Pld': ' '.join(copy2)})
 
         return result
 

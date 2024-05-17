@@ -15,8 +15,9 @@ class RouteChecker(BaseChecker):
         injection_exploits = self.get_injection_payloads()
         super().check_injections(injection_exploits)
 
-        idor_payloads = self.get_idor_payloads()
-        super().check_idor(idor_payloads)
+        if self.severity == 1:
+            idor_payloads = self.get_idor_payloads()
+            super().check_idor(idor_payloads)
 
         ssti_exploits = self.get_ssti_payloads()
         super().check_ssti(ssti_exploits)

@@ -22,11 +22,13 @@ class CookieChecker(BaseChecker):
             = self.get_injection_payloads()
 
         super().check_injections(injection_exploits)
-        super().check_idor(idor_results)
         super().check_ssti(ssti_results)
-        super().check_ssrf(ssrf_results)
         super().check_bool_based_injections(bool_based_result)
         super().check_time_based_injections(time_based_result)
+
+        if self.severity == 1:
+            super().check_idor(idor_results)
+            super().check_ssrf(ssrf_results)
 
     def _check_header_host(self):
         split_body_req = self._main_input.first_req.split('\n\n', 1)

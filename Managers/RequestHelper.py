@@ -1,4 +1,5 @@
 import os.path
+import time
 import uuid
 import requests
 from requests import Timeout
@@ -12,8 +13,11 @@ class RequestHelper:
         self._url = url.rstrip('/')
         self._err_directory = 'Errors'
         disable_warnings(exceptions.InsecureRequestWarning)
+        self._need_delay = False
 
     def request_raw(self, raw_request: str):
+        if self._need_delay:
+            time.sleep(1)
 
         method = raw_request.split(' ', 1)[0]
         curr_url = f'{self._url}{raw_request.split(' ', 2)[1]}'
@@ -59,6 +63,10 @@ class RequestHelper:
                     f.close()
             else:
                 print(f'Status: {resp.status_code}')
+
+            if resp.status_code == 429:
+                self._need_delay = True
+
             return resp
 
         except (ConnectionError, Timeout, InvalidHeader):

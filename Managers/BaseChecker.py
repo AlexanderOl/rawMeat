@@ -52,6 +52,7 @@ class BaseChecker:
         self._found_headers = set()
         self._delay_in_seconds = 5
         self._req_helper = RequestHelper(self._main_input.target_url)
+        self.severity = int(os.environ.get('severity'))
 
     def check_injections(self, injection_payloads: [str]):
 

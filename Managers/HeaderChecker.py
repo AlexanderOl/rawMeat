@@ -11,7 +11,8 @@ class HeaderChecker(BaseChecker):
                                'Sec-Fetch-Mode', 'Sec-Fetch-Site', 'Te']
 
     def run(self):
-        self.__check_location_header()
+        if self.severity == 1:
+            self.__check_location_header()
         self.__check_xml_content_type()
 
         injection_payloads, time_based_payloads, bool_based_payloads = self.__get_headers_payloads()

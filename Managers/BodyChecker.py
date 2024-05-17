@@ -43,10 +43,12 @@ class BodyChecker(BaseChecker):
         super().check_time_based_injections(self._time_based_result)
         super().check_bool_based_injections(self._bool_based_result)
 
-        super().check_idor(self._idor_result)
         super().check_ssti(self._ssti_result)
-        super().check_ssrf(self._ssrf_result)
         super().check_xxe(self._xxe_result)
+
+        if self.severity == 1:
+            super().check_idor(self._idor_result)
+            super().check_ssrf(self._ssrf_result)
 
     def __create_recursive_json_payloads(self, possible_json: str, curr_depth: int):
 
