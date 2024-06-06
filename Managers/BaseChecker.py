@@ -244,7 +244,7 @@ class BaseChecker:
                         msg = f"Bool sqli size FOUND! TRUE:{true_request[0:100]}; FALSE:{false_request[0:100]}"
                         print(msg)
                         self.save_found(msg, [true_request, false_request], self._outputBoolBasedDir)
-                elif true_status != false_status:
+                if true_status != false_status:
                     true2_response = self._req_helper.request_raw(true2_request)
                     true2_status = true2_response.status_code
                     if true_status == true2_status:
@@ -262,15 +262,15 @@ class BaseChecker:
                 true_request = f'{time_based_payload["True"]}'
                 false_request = f'{time_based_payload["False"]}'
 
-                time_based_found1 = self.__send_time_based_request(true_request, with_delay=True)
+                time_based_found1 = self.__send_time_based_request(true_request)
                 if time_based_found1:
-                    time_based_found2 = self.__send_time_based_request(false_request, with_delay=False)
-                    if time_based_found2:
-                        time_based_found3 = self.__send_time_based_request(true_request, with_delay=True)
+                    time_based_found2 = self.__send_time_based_request(false_request)
+                    if not time_based_found2:
+                        time_based_found3 = self.__send_time_based_request(true_request)
                         if time_based_found3:
-                            time_based_found4 = self.__send_time_based_request(false_request, with_delay=False)
-                            if time_based_found4:
-                                time_based_found5 = self.__send_time_based_request(true_request, with_delay=True)
+                            time_based_found4 = self.__send_time_based_request(false_request)
+                            if not time_based_found4:
+                                time_based_found5 = self.__send_time_based_request(true_request)
                                 if time_based_found5:
                                     msg = f"Delay FOUND! TRUE:{true_request[0:100]}; " \
                                           f"FALSE:{false_request[0:100]}"
@@ -283,13 +283,9 @@ class BaseChecker:
             exc_info = sys.exc_info()
             print(f'check_time_based_injections: {inst}, trace: {exc_info}')
 
-    def __send_time_based_request(self, request, with_delay):
+    def __send_time_based_request(self, request):
         try:
             response = self._req_helper.request_raw(request)
-            if response is not None and response.elapsed.total_seconds() >= self._delay_in_seconds and with_delay:
-                return True
-            if response is not None and response.elapsed.total_seconds() < self._delay_in_seconds and not with_delay:
-                return True
-            return False
+            return response is None or response.elapsed.total_seconds() >= self._delay_in_seconds
         except (RequestException, ReadTimeoutError):
-            return with_delay
+            return True

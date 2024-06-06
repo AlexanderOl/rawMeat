@@ -78,9 +78,15 @@ class RouteChecker(BaseChecker):
                 payload_part = f'{part}{payload}'
                 new_route_parts = deepcopy(route_parts)
                 new_route_parts[index] = payload_part
-                payload = f'/{"/".join(new_route_parts)}?{parsed.query}'
-                request_parts[1] = payload
+                full_payload = f'/{"/".join(new_route_parts)}?{parsed.query}'
+                request_parts[1] = full_payload
                 result.append(' '.join(request_parts))
-
+                if index == len(route_parts) - 1:
+                    new_last_route_parts = deepcopy(route_parts)
+                    last_payload_part = f'{part}?{payload}'
+                    new_last_route_parts[index] = last_payload_part
+                    payload = f'/{"/".join(new_last_route_parts)}{parsed.query}'
+                    request_parts[1] = payload
+                    result.append(' '.join(request_parts))
         return result
 
