@@ -12,8 +12,7 @@ from Models.MainInput import MainInput
 class BaseChecker:
     def __init__(self, main_input: MainInput):
         self._bool_diff_rate = 0.1
-        self._injection_payloads = ['%27', '\\', '<poc>', '""poc\'\'', '"', '%5C', '\'',
-                                    '{{888*888}}', '@(888*888)']
+        self._injection_payloads = ['%27', '\\', '"', '%5C', '\'', '{{888*888}}', '@(888*888)']
         self._time_based_payloads = [
             {'True': '\'OR(if(1=1,sleep(5),0))OR\'', 'False': '\'OR(if(1=2,sleep(5),0))OR\''},
             {'True': '"OR(if(1=1,sleep(5),0))OR"', 'False': '"OR(if(1=2,sleep(5),0))OR"'},
@@ -53,6 +52,9 @@ class BaseChecker:
         self._delay_in_seconds = 5
         self._req_helper = RequestHelper(self._main_input.target_url)
         self.severity = int(os.environ.get('severity'))
+        if self.severity == 1:
+            self._injection_payloads.append('<poc>')
+            self._injection_payloads.append('""poc\'\'')
 
     def check_injections(self, injection_payloads: [str]):
 
