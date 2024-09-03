@@ -62,7 +62,7 @@ class RequestHelper:
                         f.write(f"{line}\n")
                     f.close()
             else:
-                print(f'Status: {resp.status_code}')
+                print(f'Status: {resp.status_code}, Size: {len(resp.text)}')
 
             if resp.status_code == 429:
                 self._need_delay = True
