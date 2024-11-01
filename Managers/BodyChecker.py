@@ -32,11 +32,12 @@ class BodyChecker(BaseChecker):
         if len(found_jsons) > 0:
             for found in found_jsons:
                 self.__create_recursive_json_payloads(found, curr_depth)
+        elif 'Content-Type: multipart/form-data' in self._main_input.first_req:
+            self.__create_multipart_payloads()
         else:
             self.__create_body_payloads()
 
         self.__create_xxe_payloads()
-        self.__create_multipart_payloads()
 
         super().check_injections(self._inject_result)
 
@@ -212,7 +213,7 @@ class BodyChecker(BaseChecker):
             return
         split_req = self._main_input.first_req.split('\n\n')
         body_params = split_req[1].strip('\r\n')
-        params = filter(None, body_params.split("&"))
+        params = list(filter(None, body_params.split("&")))
         for param in params:
             param_split = param.split('=')
             main_url_split = body_params.split(param)
@@ -239,9 +240,6 @@ class BodyChecker(BaseChecker):
                 self._inject_result.append('\n\n'.join(split_req))
 
     def __create_multipart_payloads(self):
-        if ('Content-Type: multipart/form-data' not in self._main_input.first_req
-                or '-----------------------------' not in self._main_input.first_req):
-            return
         split_req = self._main_input.first_req.split('-----------------------------')
 
         for n in range(len(split_req) - 2):

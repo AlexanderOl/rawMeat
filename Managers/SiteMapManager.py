@@ -131,14 +131,14 @@ class SiteMapManager:
         return is_already_added
 
     def __get_target_domain_urls(self):
-        filepath = self._target_urls_filepath
-        text_file = open(filepath, "r")
-        urls = text_file.readlines()
         result = set()
-        for url in urls:
-            parsed_parts = urlparse(url)
-            result.add(parsed_parts.netloc)
-
+        filepath = self._target_urls_filepath
+        if os.path.exists(filepath):
+            text_file = open(filepath, "r")
+            urls = text_file.readlines()
+            for url in urls:
+                parsed_parts = urlparse(url)
+                result.add(parsed_parts.netloc)
         self._target_domain_urls = result
 
     def __read_history(self):
